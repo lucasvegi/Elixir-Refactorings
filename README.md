@@ -1,2 +1,3 @@
-# Elixir-Refactorings
-Catalog of Elixir-specific Refactorings
+# Catalog of Elixir-specific Refactorings
+
+Work in Progress
