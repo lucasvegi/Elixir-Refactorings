@@ -5,6 +5,7 @@
 * __[Introduction](#introduction)__
 * __[Elixir Refactorings](#elixir-refactorings)__
   * [Rename an identifier](#rename-an-identifier)
+  * [Moving a definition](#moving-a-definition)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -86,6 +87,88 @@ Please feel free to make pull requests and suggestions ([Issues][Issues] tab). W
   * After all calls to the original function have been replaced with the new function, and the code has been tested to verify that there are no breaking changes, it is safe to delete the original function and its definitions in a ``behaviour`` or ``protocol`` (if applicable) to complete the refactoring process.
 
 [▲ back to Index](#table-of-contents)
+___
+
+### Moving a definition
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ Modules in Elixir are used to group related and interdependent definitions, promoting cohesion. A definition in Elixir can be a ``function``, ``macro``, or ``struct``, for example. When a definition accesses more data or calls more functions from another module other than its own, or is used more frequently by another module, we may have less cohesive modules with high coupling. To improve maintainability by grouping more cohesive definitions in modules, these definitions should be moved between modules when identified. This refactoring helps to eliminate the [Feature Envy][Feature Envy] code smell.
+
+* __Examples:__ The following code illustrates this refactoring in the context of ``moving functions``. Before the refactoring, we have a function ``foo/2`` from ``ModuleA``, which besides not being called by any other function in its module, only makes calls to functions from another module (``ModuleB``). This function ``foo/2``, as it is clearly misplaced in ``ModuleA``, decreases the cohesion of this module and creates an avoidable coupling with ``ModuleB``, making the codebase harder to maintain.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule ModuleA do
+    alias ModuleB, as: B
+    
+    def foo(v1, v2) do
+      B.baz(v1, v2)
+      |> B.qux()
+    end
+
+    def bar(v1) do
+      ...
+    end
+  end
+
+  #...Use example...
+  iex(1)> ModuleA.foo(1, 2)
+  ```
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule ModuleB do   
+    def baz(value_1, value_2) do
+      ...
+    end
+
+    def qux(value_1) do
+      ...
+    end
+  end
+  ```
+
+  We want to move ``foo/2`` to ``ModuleB`` to improve the grouping of related functions in our codebase. To do this, we should not only copy ``foo/2`` to ``ModuleB``, but also check if ``foo/2`` depends on other resources that should also be moved or if it has references that need to be updated when the function is positioned in its new module.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule ModuleA do
+    def bar(v1) do
+      ...
+    end
+  end
+  ```
+
+  ```elixir
+  # After refactoring:
+
+  defmodule ModuleB do   
+    def baz(value_1, value_2) do
+      ...
+    end
+
+    def qux(value_1) do
+      ...
+    end
+
+    def foo(v1, v2) do #<-- moved function!
+      baz(v1, v2)
+      |> qux()
+    end
+  end
+  
+  #...Use example...
+  iex(1)> ModuleB.foo(1, 2)
+  ```
+
+  All calls to ``ModuleA.foo/2`` should be updated to ``ModuleB.foo/2``. When there are no more calls to ``ModuleA.foo/2`` in the codebase, it should be deleted from ``ModuleA``. In addition, ``ModuleA`` will no longer need to import functions from ``ModuleB``, since this coupling has been undone.
+
+[▲ back to Index](#table-of-contents)
+___
 
 ## About
 
@@ -117,6 +200,7 @@ Our research is also part of the initiative called __[Research with Elixir][Rese
 [jose-valim]: https://github.com/josevalim
 [Finbits]: https://www.finbits.com.br/
 [ResearchWithElixir]: http://pesquisecomelixir.com.br/
+[Feature Envy]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#feature-envy
 
 [ICPC-ERA]: https://conf.researchr.org/track/icpc-2022/icpc-2022-era
 [preprint-copy]: https://doi.org/10.48550/arXiv.2203.08877
