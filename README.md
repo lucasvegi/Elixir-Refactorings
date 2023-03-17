@@ -6,6 +6,7 @@
 * __[Elixir Refactorings](#elixir-refactorings)__
   * [Rename an identifier](#rename-an-identifier)
   * [Moving a definition](#moving-a-definition)
+  * [Generalise a function definition](#generalise-a-function-definition)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -170,6 +171,78 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
+### Generalise a function definition
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ This refactoring helps to eliminate the [Duplicated Code][Duplicated Code] code smell. In any programming language, this code smell can make the codebase harder to maintain due to restrictions on code reuse. When different functions have equivalent expression structures, that structure should be generalized into a new function, which will later be called in the body of the duplicated functions, replacing their original codes. After that refactoring, the programmer only needs to worry about maintaining these expressions in one place (generic function). The support for ``high-order functions`` in functional programming languages enhances the potential for generalizing provided by this refactoring.
+
+* __Examples:__ In Elixir, as well as in other functional languages like Erlang and Haskell, functions are treated as first-class citizens, which means functions can be assigned to variables, making it possible to define ``high-order functions``, which are functions that take one or more functions as arguments or return a function as its result. The following code illustrates this refactoring using a high-order function. Before the refactoring, we have two functions in the ``Gen`` module. The ``foo/1`` function takes a list as an argument and transforms it in two steps. First, it squares each of its elements and then multiplies each element by 3, returning a new list. The ``bar/1`` function operates similarly, receiving a list as an argument and also transforming it in two steps. First, it doubles the value of each element in the list and then returns a list containing only the elements divisible by 4. Although these two functions transform lists in different ways, they have duplicated structures.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Gen do
+    def foo(list) do
+      list_comprehension = for x <- list, do: x * x
+
+      list_comprehension
+      |> Enum.map(&(&1 * 3))
+    end
+
+    def bar(list) do
+      list_comprehension = for x <- list, do: x + x
+
+      list_comprehension
+      |> Enum.filter(&(rem(&1, 4) == 0))
+    end
+  end
+
+  #...Use example...
+  iex(1)> Gen.foo([1, 2, 3])  
+  [3, 12, 27]
+
+  iex(2)> Gen.bar([2, 3, 4])
+  [4, 8]
+  ```
+
+  We want to generalize the functions ``foo/1`` and ``bar/1``. To do so, we must create a new function ``generic/4`` and replace the bodies of ``foo/1`` and ``bar/1`` with calls to ``generic/4``. Note that ``generic/4`` is a *__high-order function__*, since its last three arguments are functions that are called only within its body. Due to the use of high-order functions in this refactoring, we were able to create a smaller and easier-to-maintain new function than would be if we did not use this functional programming feature.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Gen do
+    def generic(list, generator_op, trans_op, trans_args) do
+      list_comprehension = for x <- list, do: generator_op.(x,x)
+
+      list_comprehension
+      |> trans_op.(trans_args)
+    end
+    
+    def foo(list) do
+      # Body replaced
+      generic(list, &Kernel.*/2, &Enum.map/2, &(&1 * 3))
+    end
+
+    def bar(list) do
+      # Body replaced
+      generic(list, &Kernel.+/2, &Enum.filter/2, &(rem(&1, 4) == 0))
+    end
+  end
+
+  #...Use example...
+  iex(1)> Gen.foo([1, 2, 3])  
+  [3, 12, 27]
+
+  iex(2)> Gen.bar([2, 3, 4])
+  [4, 8]
+  ```
+
+  This refactoring preserved the behaviors of ``foo/1`` and ``bar/1``, without the need to modify their calls. In addition, we eliminated the duplicated code, allowing the developer to focus solely on maintaining the generic function in the ``Gen`` module. Finally, if there is a need to create a new function for transforming lists in two steps, we can possibly reuse the code from ``generic/4`` without creating new duplications.
+
+[▲ back to Index](#table-of-contents)
+___
+
 ## About
 
 This catalog was proposed by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC/UFMG][ASERG].
@@ -201,6 +274,7 @@ Our research is also part of the initiative called __[Research with Elixir][Rese
 [Finbits]: https://www.finbits.com.br/
 [ResearchWithElixir]: http://pesquisecomelixir.com.br/
 [Feature Envy]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#feature-envy
+[Duplicated Code]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#duplicated-code
 
 [ICPC-ERA]: https://conf.researchr.org/track/icpc-2022/icpc-2022-era
 [preprint-copy]: https://doi.org/10.48550/arXiv.2203.08877
