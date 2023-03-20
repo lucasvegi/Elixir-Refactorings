@@ -7,6 +7,8 @@
   * [Rename an identifier](#rename-an-identifier)
   * [Moving a definition](#moving-a-definition)
   * [Generalise a function definition](#generalise-a-function-definition)
+  * [Add or remove a parameter](#add-or-remove-a-parameter)
+  * [Grouping parameters in tuple](#grouping-parameters-in-tuple)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -243,6 +245,93 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
+### Add or remove a parameter
+
+* __Category:__ Traditional Refactorings.
+
+* __Motivation:__ This refactoring is used when it is necessary to request additional information from the callers of a function or the opposite situation, when some information passed by the callers is no longer necessary. The transformation promoted by this refactoring usually creates a new function with the same name as the original, but with a new parameter added or a parameter removed, and the body of the original function is replaced by a call to the new function, subsequently replacing the calls to the original function with calls to the new function. Thanks to the possibility of specifying default values for function parameters in Elixir, using the ``\\`` operator, we can simplify the mechanics of this refactoring, as shown in the following example.
+
+* __Examples:__ The following code has a ``foo/1`` function that always adds the constant +1 to the value passed as a parameter.
+
+  ```elixir
+  # Before refactoring:
+
+  def foo(value) do
+    value + 1
+  end
+  ```
+
+  We want to add a parameter to the function ``foo/1`` to generalize the constant used in the sum. To do this, we can add ``new_arg`` at the end of the parameter list, accompanied by the default value ``\\ 1``. In addition, we should modify the body of the function to use this new parameter, as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  def foo(value, new_arg \\ 1) do
+    value + new_arg
+  end
+  ```
+
+  Note that although we have now only explicitly implemented the ``foo/2`` function, in Elixir this definition generates two functions with the same name, but with different arities: ``foo/1`` and ``foo/2``. This will allow the callers of the original function to continue functioning without any changes. Although the example has only emphasized the addition of new parameters using default values, this feature can also be useful when we want to remove a parameter from a function, decreasing its arity. We can define a default value for the parameter to be removed when it is no longer used in the body of the function. This will keep the higher arity function callers working, even if providing an unused additional value. Additionally, new callers of the lower arity function can coexist in the codebase. When all old callers of the higher arity function are replaced by calls to the lower arity function, the parameter with the default value can finally be removed from the function without compromising any caller.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Grouping parameters in tuple
+
+* __Category:__ Traditional Refactorings.
+
+* __Motivation:__ This refactoring can be useful to eliminate the [Long Parameter List][Long Parameter List] code smell. When functions have very long parameter lists, their interfaces can become confusing, making the code difficult to read and increasing the propensity for bugs. This refactoring concentrates on grouping a number of a function's sequential and related parameters into a ``tuple``, thereby shortening the list of parameters. The function`s callers are also modified by this refactoring to correspond to the new parameter list. ``Tuple`` is a data type supported by Elixir and is often used to group a fixed number of elements.
+
+* __Examples:__ The following code presents the `Foo` module, composed only by the ``rand/2`` function. This function takes two values as a parameter and returns the random number present in the range defined by the two parameters. Although ``rand/2``'s parameter list is not necessarily long, try to imagine a scenario where a function has a list consisting of five or more parameters, for example. Furthermore, not always all parameters of a function can be grouped as in this example.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def rand(first, last) do
+      Enum.random(first..last)
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.rand(1, 9) 
+  4
+  iex(2)> Foo.rand(2, 8)   
+  2
+  ```
+
+  We want to find and group parameters that are related, thus decreasing the size of the list. Note that in this case, the two parameters in the list form an interval, so they are related and can be grouped to compose the function ``rand/1``, as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def rand({first, last} = group) do
+      Enum.random(first..last)
+    end
+  end
+
+  #...Use examples...
+  iex(1)> g = {1, 9}  #<= tuple definition
+  iex(2)> Foo.rand(g) 
+  5
+  
+  iex(3)> g = {2, 8}  #<= tuple definition
+  iex(4)> Foo.rand(g)   
+  7
+
+  iex(5)> g = {2, 8, 3} #<= wrong tuple definition!
+  iex(6)> Foo.rand(g) 
+  ** (FunctionClauseError) no function clause matching in Foo.rand/1
+  ```
+
+  The function ``rand/1`` performs pattern matching with the value of its single parameter. This, in addition to allowing the extraction of the values that make up the ``tuple``, allows for validating whether the format of the parameter received in the call is really that of the ``tuple`` of the expected length. Also, note that this refactoring updates all function callers to the new parameter list.
+  
+  __Important:__ Although this refactoring has grouped parameters using ``tuples``, we can find in different functions identical groups of parameters that could be grouped (i.e., Data Clumps). In that case, is better to create a ``struct`` to group these parameters and reuse this ``struct`` to refactor all functions where this group of parameters occurs.
+
+[▲ back to Index](#table-of-contents)
+___
+
 ## About
 
 This catalog was proposed by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC/UFMG][ASERG].
@@ -275,6 +364,7 @@ Our research is also part of the initiative called __[Research with Elixir][Rese
 [ResearchWithElixir]: http://pesquisecomelixir.com.br/
 [Feature Envy]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#feature-envy
 [Duplicated Code]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#duplicated-code
+[Long Parameter List]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#long-parameter-list
 
 [ICPC-ERA]: https://conf.researchr.org/track/icpc-2022/icpc-2022-era
 [preprint-copy]: https://doi.org/10.48550/arXiv.2203.08877
