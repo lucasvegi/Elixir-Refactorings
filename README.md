@@ -10,6 +10,7 @@
   * [Add or remove a parameter](#add-or-remove-a-parameter)
   * [Grouping parameters in tuple](#grouping-parameters-in-tuple)
   * [Introduce pattern matching over a parameter](#introduce-pattern-matching-over-a-parameter)
+  * [Reorder parameter](#reorder-parameter)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -374,6 +375,55 @@ ___
   ```
 
   __Important:__ Although ``fibonacci/1`` is not a [Long Functions][Long Function] and originally has simple expressions in each of its branches, it serves to illustrate the purpose of this refactoring. Try to imagine a scenario where a function has many different branches, each of which is made up of several lines of code. This would indeed be an ideal scenario to apply the proposed refactoring.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Reorder parameter
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ Although the order of parameters does not change the complexity of executing a code for the machine, when a function has parameters defined in an order that does not group similar semantic concepts, the code can become more confusing for programmers, making it difficult to read and also becoming more prone to errors during its use. When we find functions with poorly organized parameters, we must reorder them in a way that allows for better readability and meaning for programmers.
+
+* __Examples:__ The following code illustrates this refactoring. Before the refactoring, we have a function ``area/3``, responsible for calculating the area of a trapezoid. Although the body of this function is correct, the two bases of the trapezoid are not sequential parameters, so this can confuse a programmer when this function is called. The area of a trapezoid that has ``major_base`` = 24 cm, ``minor_base`` = 9 cm, and ``height`` = 15 cm equals 247.5 $cm^2$. In the first call of ``area/3`` in the example, the programmer imagined that the values of the bases would be the first two parameters of the function and thus had a calculation error that could easily go unnoticed.
+
+  ```elixir
+  # Before refactoring:
+
+  def area(major_base, height, minor_base) do
+    ((major_base + minor_base) * height) / 2
+  end
+
+  #...Use examples...
+  iex(1)> Foo.area(24, 9, 15) #<- function`s misuse
+  175.5
+
+  iex(2)> Foo.area(24, 15, 9) 
+  247.5
+  ```
+
+  We want to reorder the parameters of ``area/3`` to make them semantically organized. To do so, we should create a new function ``new_area/3``, which will have the parameters reordered and copy the body of the ``area/3`` to it. Additionally, the body of the ``area/3`` function should be replaced by a call to the ``new_area/3`` function:
+
+  ```elixir
+  # After refactoring:
+
+  def new_area(major_base, minor_base, height) do
+    ((major_base + minor_base) * height) / 2
+  end
+
+  def area(major_base, height, minor_base) do   #<-- must be deleted in the future!
+    new_area(major_base, minor_base, height)
+  end
+
+  #...Use examples...
+  iex(1)> Foo.new_area(24, 9, 15)
+  247.5
+
+  iex(2)> Foo.area(24, 15, 9) 
+  247.5
+  ```
+
+  The ``area/3`` function acts as a wrapper that calls ``new_area/3`` and should be kept in the code temporarily, only while the calls to it throughout the codebase are gradually replaced by calls to ``new_area/3``. This mitigates the risk of this refactoring generating breaking changes. When there are no more calls to the ``area/3``, it should be deleted from its module and ``new_area/3`` can be renamed to ``area/3`` using [Rename an identifier](#rename-an-identifier).
 
 [▲ back to Index](#table-of-contents)
 ___
