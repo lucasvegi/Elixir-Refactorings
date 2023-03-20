@@ -385,7 +385,7 @@ ___
 
 * __Motivation:__ Although the order of parameters does not change the complexity of executing a code for the machine, when a function has parameters defined in an order that does not group similar semantic concepts, the code can become more confusing for programmers, making it difficult to read and also becoming more prone to errors during its use. When we find functions with poorly organized parameters, we must reorder them in a way that allows for better readability and meaning for programmers.
 
-* __Examples:__ The following code illustrates this refactoring. Before the refactoring, we have a function ``area/3``, responsible for calculating the area of a trapezoid. Although the body of this function is correct, the two bases of the trapezoid are not sequential parameters, so this can confuse a programmer when this function is called. The area of a trapezoid that has ``major_base`` = 24 cm, ``minor_base`` = 9 cm, and ``height`` = 15 cm equals 247.5 $cm^2$. In the first call of ``area/3`` in the example, the programmer imagined that the values of the bases would be the first two parameters of the function and thus had a calculation error that could easily go unnoticed.
+* __Examples:__ The following code illustrates this refactoring. Before the refactoring, we have a function ``area/3``, responsible for calculating the area of a trapezoid. Although the body of this function is correct, the two bases of the trapezoid are not sequential parameters, so this can confuse a programmer when this function is called. The area of a trapezoid that has ``major_base`` = 24 cm, ``minor_base`` = 9 cm, and ``height`` = 15 cm equals 247.5 cm^2. In the first call of ``area/3`` in the example, the programmer imagined that the values of the bases would be the first two parameters of the function and thus had a calculation error that could easily go unnoticed.
 
   ```elixir
   # Before refactoring:
@@ -395,10 +395,10 @@ ___
   end
 
   #...Use examples...
-  iex(1)> Foo.area(24, 9, 15) #<- function`s misuse
+  iex(1)> Foo.area(24, 9, 15) #<- misuse
   175.5
 
-  iex(2)> Foo.area(24, 15, 9) 
+  iex(2)> Foo.area(24, 15, 9)
   247.5
   ```
 
@@ -419,7 +419,7 @@ ___
   iex(1)> Foo.new_area(24, 9, 15)
   247.5
 
-  iex(2)> Foo.area(24, 15, 9) 
+  iex(2)> Foo.area(24, 15, 9)
   247.5
   ```
 
