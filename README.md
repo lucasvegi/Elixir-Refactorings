@@ -9,6 +9,7 @@
   * [Generalise a function definition](#generalise-a-function-definition)
   * [Add or remove a parameter](#add-or-remove-a-parameter)
   * [Grouping parameters in tuple](#grouping-parameters-in-tuple)
+  * [Introduce pattern matching over a parameter](#introduce-pattern-matching-over-a-parameter)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -332,6 +333,51 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
+### Introduce pattern matching over a parameter
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ Some functions have different branches that depend on the values passed to one or more parameters at call time to define the flow of execution. When these functions use classic conditional structures to implement these branches (e.g., ``if``, ``unless``, ``cond``, ``case``), they can get large bodies, becoming [Long Functions][Long Function], thus harming the maintainability of the code. This refactoring seeks to replace, when appropriate, these classic conditional structures that control the branches defined by parameter values, with pattern-matching features and multi-clause functions from functional languages such as Elixir, Erlang, and Haskell.
+
+* __Examples:__ The following code presents the ``fibonacci/1`` function. This recursive function has three different branches that are defined by the value of its single parameter, two for its base cases and one for its recursive case. The control flow for each of these branches is done by a classic conditional structure (``case``).
+
+  ```elixir
+  # Before refactoring:
+
+  def fibonacci(n) when is_integer(n) do
+    case n do
+      0 -> 0
+      1 -> 1
+      _ -> fibonacci(n-1) + fibonacci(n-2)
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.fibonacci(8) 
+  21
+  ```
+
+  We want to replace the classic ``case`` conditional by using pattern matching on the function parameter. This will turn this function into a multi-clause function, assigning each branch to a clause. Note that in addition to reducing the size of the function body by distributing the branches across the clauses, it is not necessary to make any changes to the ``fibonacci/1`` callers, since their behavior has been preserved.
+
+  ```elixir
+  # After refactoring:
+
+  def fibonacci(0), do: 0
+  def fibonacci(1), do: 1
+  def fibonacci(n) when is_integer(n) do
+    fibonacci(n-1) + fibonacci(n-2)
+  end
+
+  #...Use examples...
+  iex(1)> Foo.fibonacci(8) 
+  21
+  ```
+
+  __Important:__ Although ``fibonacci/1`` is not a [Long Functions][Long Function] and originally has simple expressions in each of its branches, it serves to illustrate the purpose of this refactoring. Try to imagine a scenario where a function has many different branches, each of which is made up of several lines of code. This would indeed be an ideal scenario to apply the proposed refactoring.
+
+[▲ back to Index](#table-of-contents)
+___
+
 ## About
 
 This catalog was proposed by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC/UFMG][ASERG].
@@ -365,6 +411,7 @@ Our research is also part of the initiative called __[Research with Elixir][Rese
 [Feature Envy]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#feature-envy
 [Duplicated Code]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#duplicated-code
 [Long Parameter List]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#long-parameter-list
+[Long Function]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#long-function
 
 [ICPC-ERA]: https://conf.researchr.org/track/icpc-2022/icpc-2022-era
 [preprint-copy]: https://doi.org/10.48550/arXiv.2203.08877
