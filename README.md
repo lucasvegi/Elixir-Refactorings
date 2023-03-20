@@ -402,16 +402,16 @@ ___
   247.5
   ```
 
-  We want to reorder the parameters of ``area/3`` to make them semantically organized. To do so, we should create a new function ``new_area/3``, which will have the parameters reordered and copy the body of the ``area/3`` to it. Additionally, the body of the ``area/3`` function should be replaced by a call to the ``new_area/3`` function:
+  We want to reorder the parameters of ``area/3`` to make them semantically organized. To do so, we should create a new function ``new_area/3``, which will have the parameters reordered and copy the body of the ``area/3`` to it. Additionally, the body of the ``area/3`` should be replaced by a call to the ``new_area/3``:
 
   ```elixir
   # After refactoring:
 
-  def new_area(major_base, minor_base, height) do
+  def new_area(major_base, minor_base, height) do  #<-- can be renamed in the future!
     ((major_base + minor_base) * height) / 2
   end
 
-  def area(major_base, height, minor_base) do   #<-- must be deleted in the future!
+  def area(major_base, height, minor_base) do      #<-- must be deleted in the future!
     new_area(major_base, minor_base, height)
   end
 
@@ -423,7 +423,7 @@ ___
   247.5
   ```
 
-  The ``area/3`` function acts as a wrapper that calls ``new_area/3`` and should be kept in the code temporarily, only while the calls to it throughout the codebase are gradually replaced by calls to ``new_area/3``. This mitigates the risk of this refactoring generating breaking changes. When there are no more calls to the ``area/3``, it should be deleted from its module and ``new_area/3`` can be renamed to ``area/3`` using [Rename an identifier](#rename-an-identifier).
+  The ``area/3`` acts as a wrapper that calls ``new_area/3`` and should be kept in the code temporarily, only while the calls to it throughout the codebase are gradually replaced by calls to ``new_area/3``. This mitigates the risk of this refactoring generating breaking changes. When there are no more calls to the ``area/3``, it should be deleted from its module and ``new_area/3`` can be renamed to ``area/3`` using [Rename an identifier](#rename-an-identifier).
 
 [▲ back to Index](#table-of-contents)
 ___
