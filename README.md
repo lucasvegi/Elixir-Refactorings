@@ -13,6 +13,7 @@
   * [Reorder parameter](#reorder-parameter)
   * [Extract function](#extract-function)
   * [Turning anonymous into local functions](#turning-anonymous-into-local-functions)
+  * [Merging multiple definitions](#merging-multiple-definitions)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -535,6 +536,101 @@ ___
   ```
 
   Note that although in this example the new local function ``double/1``, defined to replace the duplicated anonymous functions, was only used in the ``Lambda`` module, nothing prevents it from being reused in other parts of the codebase, as ``double/1`` can be imported by any other module.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Merging multiple definitions
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ This refactoring is also an option for removing [Duplicated Code][Duplicated Code] and can optimize a codebase by sharing that code in a single location. There are situations where a codebase may have distinct functions that are complementary. Because they are complementary, these functions may have identical code snippets. When identified, these functions should be merged into a new function that will simultaneously perform the processing done by the original functions separately. The new function created by this refactoring will always return a tuple, where each original return provided by the merged functions will be contained in different elements of the tuple returned by the new function. In functional languages, this refactoring is also referred to as tupling.
+
+* __Examples:__ The following code illustrates this refactoring. Before the refactoring, we have two functions in the ``MyList`` module. The ``take/2`` function takes an integer value ``n`` and a list as parameters, returning a new list composed of the first ``n`` elements of the original list. The ``drop/2`` function also takes an integer value ``n`` and a list as parameters, but ignores the first ``n`` elements of the original list, returning a new list composed of the remaining elements. Note that although ``take/2`` and ``drop/2`` return different values, they are complementary multi-clause functions and therefore have many nearly identical code snippets.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule MyList do
+    def take(0, _), do: []
+    def take(_, []), do: []
+    def take(n, [h | t]) when n > 0 do
+      [h | take(n-1, t)]
+    end
+    def take(_, _), do: :error_take_negative
+
+    def drop(0, list), do: list
+    def drop(_, []), do: []
+    def drop(n, [h | t]) when n > 0 do
+      drop(n-1, t)
+    end
+    def drop(_, _), do: :error_drop_negative
+  end
+
+  #...Use examples...
+  iex(1)> list = [1, 2, 3, 4, 5 , 6]
+  
+  iex(2)> MyList.take(2, list)
+  [1, 2]
+
+  iex(3)> MyList.drop(2, list) 
+  [3, 4, 5, 6]
+  ```
+
+  If we analyze the examples of using the code above, we can clearly see how these functions are complementary. Both received the same list as a parameter and by joining the lists returned by them, we will have the same elements of the original list, in other words, it is as if we had split the original list after the second element and ignored one of the two sub-lists in each of the functions.
+  
+  Thinking about this, we can merge these two complementary functions into a new function called ``split_at/2``. This function will remove duplicate expressions by introducing code sharing. In addition, it will return a tuple composed of two elements. The first element will contain the value that would originally be returned by ``take/2`` and the second element will contain the value that would be returned by ``drop/2``.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule MyList do
+    def take(0, _), do: []        #<- can be deleted in the future!
+    def take(_, []), do: []
+    def take(n, [h | t]) when n > 0 do
+      [h | take(n-1, t)]
+    end
+    def take(_, _), do: :error_take_negative
+
+    def drop(0, list), do: list   #<- can be deleted in the future!
+    def drop(_, []), do: []
+    def drop(n, [h | t]) when n > 0 do
+      drop(n-1, t)
+    end
+    def drop(_, _), do: :error_drop_negative
+
+    # Merging take and drop!
+    def split_at(0, list), do: {[], list}
+    def split_at(_, []), do: {[], []}
+    def split_at(n, [h |t]) when n > 0 do
+      {ts, zs} = split_at(n-1, t)
+      {[h | ts], zs}
+    end
+    def split_at(_, _), do: {:error_take_negative, :error_drop_negative}
+  end
+
+  #...Use examples...
+  iex(1)> list = [1, 2, 3, 4, 5 , 6]
+  
+  iex(2)> MyList.split_at(2, list)
+  {[1, 2], [3, 4, 5, 6]}
+  ```
+
+  In the refactored code above, we kept the functions ``take/2`` and ``drop/2`` in the ``MyList`` module just so the reader could more easily compare how this merge allowed code sharing. They were not modified. From a practical point of view, the calls to ``take/2`` and ``drop/2`` can be replaced by calls to ``split_at/2``, with their respective returns being extracted via pattern matching, as in the example below:
+
+  ```elixir
+  iex(1)> {take, drop} = MyList.split_at(2, [1,2,3,4,5,6])
+
+  iex(2)> take
+  [1, 2]
+
+  iex(3)> drop
+  [3, 4, 5, 6]
+  ```
+
+  The functions ``take/2`` and ``drop/2`` can be deleted from ``MyList`` once all their calls have been replaced by calls to ``split_at/2``.
+
+  These examples are based on Haskell code written in two papers. Source: [[1]](https://dl.acm.org/doi/10.1145/1706356.1706378), [[2]](https://www.cs.kent.ac.uk/pubs/2010/3009/index.html).
 
 [▲ back to Index](#table-of-contents)
 ___
