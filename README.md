@@ -11,6 +11,8 @@
   * [Grouping parameters in tuple](#grouping-parameters-in-tuple)
   * [Introduce pattern matching over a parameter](#introduce-pattern-matching-over-a-parameter)
   * [Reorder parameter](#reorder-parameter)
+  * [Extract function](#extract-function)
+  * [Turning anonymous into local functions](#turning-anonymous-into-local-functions)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -395,10 +397,10 @@ ___
   end
 
   #...Use examples...
-  iex(1)> Foo.area(24, 9, 15) #<- misuse
+  iex(1)> Trapezoid.area(24, 9, 15) #<- misuse
   175.5
 
-  iex(2)> Foo.area(24, 15, 9)
+  iex(2)> Trapezoid.area(24, 15, 9)
   247.5
   ```
 
@@ -416,14 +418,123 @@ ___
   end
 
   #...Use examples...
-  iex(1)> Foo.new_area(24, 9, 15)
+  iex(1)> Trapezoid.new_area(24, 9, 15)
   247.5
 
-  iex(2)> Foo.area(24, 15, 9)
+  iex(2)> Trapezoid.area(24, 15, 9)
   247.5
   ```
 
   The ``area/3`` acts as a wrapper that calls ``new_area/3`` and should be kept in the code temporarily, only while the calls to it throughout the codebase are gradually replaced by calls to ``new_area/3``. This mitigates the risk of this refactoring generating breaking changes. When there are no more calls to the ``area/3``, it should be deleted from its module and ``new_area/3`` can be renamed to ``area/3`` using [Rename an identifier](#rename-an-identifier).
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Extract function
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ For us to have code with easy readability, it is important that its purpose be clearly exposed, not requiring a developer to spend too much time to understand its purpose. Sometimes we come across functions that concentrate on many purposes and therefore become long ([Long Functions][Long Function]), making their maintenance difficult. It is common in such functions to find code comments used to explain the purpose of a sequence of lines. Whenever we encounter functions with these characteristics, we should extract these code sequences into a new function that has a name that clearly explains its purpose. In the original function, the extracted code block should be replaced by a call to the new function. This refactoring makes functions smaller and more readable, thus facilitating their maintenance.
+
+* __Examples:__ The following code illustrates this refactoring. Before the refactoring, we have a function ``ticket_booking/5``, responsible for booking an airline ticket for a passenger. All the main steps of the booking are done through a sequence of operations chained by pipe operators. After payment confirmation, the booking process is finalized by returning a tuple containing important reservation data that must be informed to the passenger. We can observe that the last 3 lines of the ``ticket_booking/5`` function are responsible for presenting a report. Note that these lines were preceded by a comment attempting to explain their purposes, highlighting that these expressions are misplaced within ``ticket_booking/5`` and even require documentation to help understand the code.
+
+  ```elixir
+  # Before refactoring:
+
+  def ticket_booking(passenger, air_line, date, credit_card, seat) do
+    {company, contact_info, cancel_policy} = check_availability(air_line, date)
+                                              |> documents_validation(passenger)
+                                              |> select_seat(seat)
+                                              |> payment(credit_card)
+    #print booking report
+    IO.puts("Booking made at the company: #{company}")
+    IO.puts("Any doubt, contact: #{contact_info}")
+    IO.puts("For cancellations, see company policies: #{cancel_policy}")
+  end
+  ```
+
+  We want to make this code more concise, reducing the size of ``ticket_booking/5`` and improving its readability. To achieve this, we should create a new function ``report/1`` that will receive a tuple as a parameter, extract the values from the tuple to variables via pattern matching, and finally present the report containing these values. In addition, the body of ``ticket_booking/5`` should be updated to include a call to ``report/1`` to replace the extracted lines of code.
+
+  ```elixir
+  # After refactoring:
+
+  def report({company, contact_info, cancel_policy} = confirmation) do
+    IO.puts("Booking made at the company: #{company}")
+    IO.puts("Any doubt, contact: #{contact_info}")
+    IO.puts("For cancellations, see company policies: #{cancel_policy}")
+  end
+  
+  def ticket_booking(passenger, air_line, date, credit_card, seat) do
+    check_availability(air_line, date)
+    |> documents_validation(passenger)
+    |> select_seat(seat)
+    |> payment(credit_card)
+    |> report()  #<- extracted function call!
+  end
+  ```
+
+  This refactoring not only improves the readability of ``ticket_booking/5``, but also enables more code reuse, since ``report/1`` may eventually be called by other functions in the codebase.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Turning anonymous into local functions
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ In Elixir, as well as in other functional languages like Erlang and Haskell, functions are considered as first-class citizens, which means that they can be assigned to variables. This enables the creation of anonymous functions, also called lambda functions, that can be assigned to variables and called from them. Although anonymous functions are very useful in many situations, they have less potential for reuse than local functions and cannot, for example, be exported to other modules. When we encounter the same anonymous function being defined in different points of the codebase ([Duplicated Code][Duplicated Code]), these anonymous functions should be transformed into a local function, and the locations where the anonymous functions were originally implemented should be updated to use the new local function. In functional languages, this refactoring is also referred to as lambda lifting and is a specific instance of [Extract Function](#extract-function). With this refactoring, we can reduce occurrences of duplicated code, enhancing code reuse potential.
+
+* __Examples:__ The following code illustrates this refactoring. Before the refactoring, we have two functions in the ``Lambda`` module. The ``foo/1`` function takes a list as an argument and doubles the value of each element, returning a new list. The ``bar/1`` function operates similarly, receiving a list as an argument and also doubles the value of each three elements, then returns a list. Note that both local functions ``foo/1`` and ``bar/1`` internally define the same anonymous function ``fn x -> x * 2 end`` for doubling the desired list values.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Lambda do
+    def foo(list) do
+      Enum.map(list, fn x -> x * 2 end)
+    end
+
+    def bar(list) do
+      Enum.map_every(list, 3, fn x -> x * 2 end)
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Lambda.foo([1, 2, 3])
+  [2, 4, 6]
+
+  iex(2)> Lambda.bar([3, 4, 5, 6, 7, 8, 9])
+  [6, 4, 5, 12, 7, 8, 18]
+  ```
+
+  We want to avoid the duplicated implementation of anonymous functions. To achieve this, we will create a new local function ``double/1``, responsible for performing the same operation previously performed by the duplicated anonymous functions. In addition, the Elixir capture operator (``&``) will be used in the places of ``foo/1`` and ``bar/1`` which originally implement anonymous functions, to replace their use with the new local function ``double/1``.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Lambda do
+    def double(x) do  #<- lambda lifted to a local function!
+      x * 2
+    end
+
+    def foo(list) do
+      Enum.map(list, &double/1)
+    end
+
+    def bar(list) do
+      Enum.map_every(list, 3, &double/1)
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Lambda.foo([1, 2, 3])
+  [2, 4, 6]
+
+  iex(2)> Lambda.bar([3, 4, 5, 6, 7, 8, 9])
+  [6, 4, 5, 12, 7, 8, 18]
+  ```
+
+  Note that although in this example the new local function ``double/1``, defined to replace the duplicated anonymous functions, was only used in the ``Lambda`` module, nothing prevents it from being reused in other parts of the codebase, as ``double/1`` can be imported by any other module.
 
 [▲ back to Index](#table-of-contents)
 ___
