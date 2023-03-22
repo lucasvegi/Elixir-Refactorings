@@ -15,6 +15,8 @@
   * [Turning anonymous into local functions](#turning-anonymous-into-local-functions)
   * [Merging multiple definitions](#merging-multiple-definitions)
   * [Inline function](#inline-function)
+  * [Inline macro substitution](#inline-macro-substitution)
+  * [Folding against a function definition](#folding-against-a-function-definition)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -675,6 +677,144 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
+### Inline macro substitution
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ ``Macros`` are powerful meta-programming mechanisms that can be used in Elixir, as well as other functional languages like Erlang and Clojure, to extend the language. However, when a macro is implemented to solve problems that could be solved by functions or other pre-existing language structures, the code becomes unnecessarily more complex and less readable. Therefore, when identifying unnecessary macros that have been implemented, we can replace all instances of these macros with the code defined in their bodies. Some code compensations will be necessary to ensure that they continue to perform properly after refactoring. This refactoring is a specialization of the [Inline function](#inline-function) and can be used to remove the code smell [Unnecessary Macros][Unnecessary Macros].
+
+* __Examples:__ The following code illustrates this refactoring. Before the refactoring, we have a macro ``sum_macro/2`` defined in the ``MyMacro`` module. This macro is used by the ``bar/2`` function in the ``Foo`` module, unnecessarily complicating the code's readability.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule MyMacro do
+    defmacro sum_macro(v1, v2) do
+      quote do
+        unquote(v1) + unquote(v2)
+      end
+    end
+  end
+  ```
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def bar(v1, v2) do
+      require MyMacro
+      MyMacro.sum_macro(v1, v2)
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.bar(2, 3)            
+  5
+  ```
+
+  To eliminate the unnecessary macro ``MyMacro.sum_macro/2``, we will replace all its calls with its body, making some code adjustments. Then, we can delete ``MyMacro.sum_macro/2`` since it will no longer be used.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def bar(v1, v2) do
+      v1 + v2   #<- inlined macro!
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.bar(2, 3)            
+  5
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Folding against a function definition
+
+* __Category:__ Traditional Refactorings.
+
+* __Motivation:__ This refactoring can be used in the context of removing [Duplicated Code][Duplicated Code], replacing a set of expressions with a call to an existing function that performs the same processing as the duplicated code. The opportunity to apply this refactoring may occur after the chained execution of the [Extract function](#extract-function) and [Generalise a function definition](#generalise-a-function-definition) refactorings. After generalizing a function that has been previously extracted, it is possible that there may still be some code snippets in the codebase that are duplicated with the generalized function. This refactoring aims to, from a source function, find code that is duplicated in relation to it and replace the duplications with calls to the source function. Some adaptations in these new call points to the source function may be necessary to preserve the code's behavior.
+
+* __Examples:__ The following code exemplifies this refactoring. Before the refactoring, we have a ``Class`` module composed of two functions. The function ``report/1`` was previously extracted from a code snippet not shown in this example. Later, this extracted function was generalized, resulting in its current format. The function ``improve_grades/3`` already existed in the ``Class`` module before ``report/1`` was generated through refactoring. Note that ``improve_grades/3`` has code snippets that are duplicated with ``report/1``.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Class do
+    defstruct [:id, :grades, :avg, :worst, :best]
+
+    def report(list) do  #<- Generated after extraction and generalisation!
+      avg = Enum.sum(list) / length(list)
+      {min, max} = Enum.min_max(list)
+      {avg, min, max}
+    end
+
+    def improve_grades(class_id, grades, students_amount) do
+      high_grade = Enum.max(grades)
+      adjustment_factor = 100 / high_grade
+      new_grades = Enum.map(grades, &(&1 * adjustment_factor) |> Float.round(2))
+
+      grades_avg = Enum.sum(new_grades) / students_amount   #<- duplicated code
+      {w, b} = Enum.min_max(new_grades)                     #<- duplicated code
+
+      %Class{id: class_id, grades: new_grades, avg: grades_avg, worst: w, best: b}
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Class.improve_grades(:software_engineering, [26, 49, 70, 85, 20, 75, 74, 15], 8)
+  %Class{
+    id: :software_engineering,
+    grades: [30.59, 57.65, 82.35, 100.0, 23.53, 88.24, 87.06, 17.65],
+    avg: 60.88375,
+    worst: 17.65,
+    best: 100.0
+  }
+  ```
+
+  We want to eliminate the duplicated code in ``improve_grades/3``. To achieve this, we can replace the duplicated code snippet with a call to ``report/1``. Note that some adaptations to the function call that will replace the duplicated code may be necessary.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Class do
+    defstruct [:id, :grades, :avg, :worst, :best]
+
+    def report(list) do 
+      avg = Enum.sum(list) / length(list)
+      {min, max} = Enum.min_max(list)
+      {avg, min, max}
+    end
+
+    def improve_grades(class_id, grades, students_amount) do
+      high_grade = Enum.max(grades)
+      adjustment_factor = 100 / high_grade
+      new_grades = Enum.map(grades, &(&1 * adjustment_factor) |> Float.round(2))
+
+      {grades_avg, w, b} = report(new_grades) #<- Folding against a function definition!
+
+      %Class{id: class_id, grades: new_grades, avg: grades_avg, worst: w, best: b}
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Class.improve_grades(:software_engineering, [26, 49, 70, 85, 20, 75, 74, 15], 8)
+  %Class{
+    id: :software_engineering,
+    grades: [30.59, 57.65, 82.35, 100.0, 23.53, 88.24, 87.06, 17.65],
+    avg: 60.88375,
+    worst: 17.65,
+    best: 100.0
+  }
+  ```
+
+  Also note that in this example, after the refactoring is done, the third parameter of the ``improve_grades/3`` function is no longer used in the function body. This is an opportunity to apply the [Add or remove parameter](#add-or-remove-a-parameter) refactoring.
+
+[▲ back to Index](#table-of-contents)
+___
+
 ## About
 
 This catalog was proposed by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC/UFMG][ASERG].
@@ -709,6 +849,7 @@ Our research is also part of the initiative called __[Research with Elixir][Rese
 [Duplicated Code]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#duplicated-code
 [Long Parameter List]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#long-parameter-list
 [Long Function]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#long-function
+[Unnecessary Macros]: https://github.com/lucasvegi/Elixir-Code-Smells#unnecessary-macros
 
 [ICPC-ERA]: https://conf.researchr.org/track/icpc-2022/icpc-2022-era
 [preprint-copy]: https://doi.org/10.48550/arXiv.2203.08877
