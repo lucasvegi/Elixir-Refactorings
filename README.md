@@ -17,6 +17,8 @@
   * [Inline function](#inline-function)
   * [Inline macro substitution](#inline-macro-substitution)
   * [Folding against a function definition](#folding-against-a-function-definition)
+  * [Extract constant](#extract-constant)
+  * [Temporary variable elimination](#temporary-variable-elimination)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -811,6 +813,116 @@ ___
   ```
 
   Also note that in this example, after the refactoring is done, the third parameter of the ``improve_grades/3`` function is no longer used in the function body. This is an opportunity to apply the [Add or remove parameter](#add-or-remove-a-parameter) refactoring.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Extract constant
+
+* __Category:__ Traditional Refactorings.
+
+* __Motivation:__ This refactoring aims to improve code readability and maintainability. When we use meaningless numbers (magic numbers) directly in expressions, code comprehension can become more complex for humans. Additionally, if the same meaningless number is scattered throughout the codebase and needs to be modified in the future, it can generate a significant maintenance burden, increasing the risk of bugs. To improve the code, this refactoring seeks to create a constant with a meaningful name for humans and replace occurrences of the meaningless number with the extracted constant.
+
+* __Examples:__ The following code provides an example of this refactoring. Prior to the refactoring, we had a ``Circle`` module consisting of two functions. Both functions used the magic number ``3.14``. Although this example contains simple code that may not seem to justify the developer's concern with extracting constants, try to imagine a more complex scenario involving larger and non-trivial code that makes more extensive use of these meaningless numbers. This could cause a lot of headache for a developer.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Circle do
+    def area(r) do 
+      3.14 * r ** 2
+    end
+
+    def circumference(r) do
+      2 * 3.14 * r
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Circle.area(3)
+  28.26
+  
+  iex(2)> Circle.circumference(3)
+  18.84
+  ```
+
+  To improve the comprehension of this code and make it easier to maintain, we can create a ``module attribute`` with a human-readable name (``@pi``) and replace the numbers with the use of this attribute.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Circle do
+    @pi 3.14    #<- extracted constant!
+
+    def area(r) do 
+      @pi * r ** 2
+    end
+
+    def circumference(r) do
+      2 * @pi * r
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Circle.area(3)
+  28.26
+  
+  iex(2)> Circle.circumference(3)
+  18.84
+  ```
+
+  This not only gives meaning to the number but also facilitates maintenance in case it needs to be changed. In the case of ``@pi``, if we wish to improve the precision of the calculations by adding more decimal places to its value, this can be easily done in the refactored code.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Temporary variable elimination
+
+* __Category:__ Traditional Refactorings.
+
+* __Motivation:__ This is a refactoring motivated by the compiler optimization technique known as copy propagation. Copy propagation is a transformation that, for an assignment of the form ``a`` = ``b``, replaces uses of the variable ``a`` with the value of the variable ``b``, thus eliminating redundant computations. This refactoring can be very useful for eliminating temporary variables that are responsible only for storing results to be returned by a function, or even intermediate values used during processing.
+
+* __Examples:__ The following code provides an example of this refactoring. Prior to the refactoring, we have a function ``bar/2`` that takes an integer value ``b`` and a ``list`` as parameters. The function returns a tuple containing two elements, the first of which is the value contained in the index ``c`` of the ``list`` and the second of which is the sum of all elements in a modified version of the ``list``.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def bar(b, list) when is_integer(b) do
+      a = b * 2
+      c = a
+      result_1 = Enum.at(list, c)
+      r = a
+      result_2 = Enum.map(list, &(&1 + r))
+                |> Enum.sum()
+
+      {result_1, result_2}
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.bar(2, [1, 2, 3, 4, 5, 6])
+  {5, 45}
+  ```
+
+  To perform this processing, the code above makes excessive and unnecessary use of temporary variables. As shown below, after the refactoring, these temporary variables will be replaced by their values and subsequently removed when they are no longer used in any location.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def bar(b, list) when is_integer(b) do
+      { Enum.at(list, b * 2),
+        Enum.map(list, &(&1 + b * 2)) |> Enum.sum() }
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.bar(2, [1, 2, 3, 4, 5, 6])
+  {5, 45}
+  ```
+
+  This refactoring can promote a significant simplification of some code, as well as avoid redundant computations that can harm performance.
 
 [▲ back to Index](#table-of-contents)
 ___
