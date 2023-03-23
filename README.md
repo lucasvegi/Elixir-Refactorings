@@ -21,6 +21,7 @@
   * [Extract constant](#extract-constant)
   * [Temporary variable elimination](#temporary-variable-elimination)
   * [Merge expressions](#merge-expressions)
+  * [Splitting a large module](#splitting-a-large-module)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -646,7 +647,7 @@ ___
 
 * __Category:__ Functional Refactorings.
 
-* __Motivation:__ This refactoring is the inverse of [Merging multiple definitions](#merging-multiple-definitions). While merge multiple definitions aims to group recursive functions into a single recursive function that returns a tuple, Splitting a definition aims to separate a recursive function by creating new recursive functions, each of them responsible for individually generating a respective element originally contained in a tuple.
+* __Motivation:__ This refactoring is the inverse of [Merging multiple definitions](#merging-multiple-definitions). While merge multiple definitions aims to group recursive functions into a single recursive function that returns a tuple, splitting a definition aims to separate a recursive function by creating new recursive functions, each of them responsible for individually generating a respective element originally contained in a tuple.
 
 * __Examples:__ Take a look at the example in [Merging multiple definitions](#merging-multiple-definitions) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
 
@@ -1045,6 +1046,105 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
+### Splitting a large module
+
+* __Category:__ Traditional Refactorings.
+
+* __Motivation:__ This refactoring can be used as a solution for removing the code smell [Large Module][Large Module], also known as Large Class in object-oriented languages. When a module in Elixir code does the work of two or more, it becomes large, poorly cohesive, and difficult to maintain. In these cases, we should split this module into several new ones, moving to each new module only the attributes and functions with purposes related to their respective goals.
+
+* __Examples:__ The code example below demonstrates the application of this refactoring technique. In this case, the ``ShoppingCart`` module is excessively large and lacks cohesion, as it combines functions related to at least four distinct and unrelated business rules.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule ShoppingCart do
+    # Rule 1
+    def calculate_total(items, subscription) do
+      # ...
+    end
+    
+    # Rule 1
+    def calculate_shipping(zip_code, %{id: 3}), do: 0.0
+    def calculate_shipping(zip_code, %{id: 4}), do: 0.0
+    def calculate_shipping(zip_code, _), do
+      10.0 * Location.calculate(zip_code)
+    end
+    
+    # Rule 2
+    def apply_discount(total, %{id: 3}), do: total * 0.9
+    def apply_discount(total, %{id: 4}), do: total * 0.9
+    def apply_discount(total, _), do: total
+
+    # Rule 3
+    def send_message_subscription(%{id: 3}, _), do: nil
+    def send_message_subscription(%{id: 4}, _), do: nil
+    def send_message_subscription(subscription, user), do: # something
+    
+    # Rule 4
+    def report(user, order) do
+      # ...
+    end
+  end
+  ```
+
+  Applying this refactoring three times, ``ShoppingCart`` can be splitted, and some of its functions could be moved to other new modules (``Item``, ``Subscription``, and ``Util``), thus increasing the codebase overall cohesion.
+  
+  ```elixir
+  # After refactoring:
+
+  defmodule ShoppingCart do
+    # Rule 1
+    def calculate_total(items, subscription) do
+      # ...
+    end
+    
+    # Rule 1
+    def calculate_shipping(zip_code, %{id: 3}), do: 0.0
+    def calculate_shipping(zip_code, %{id: 4}), do: 0.0
+    def calculate_shipping(zip_code, _), do
+      10.0 * Location.calculate(zip_code)
+    end
+  end
+  ```
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Item do    
+    # Rule 2
+    def apply_discount(total, %{id: 3}), do: total * 0.9
+    def apply_discount(total, %{id: 4}), do: total * 0.9
+    def apply_discount(total, _), do: total
+  end
+  ```
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Subscription do    
+    # Rule 3
+    def send_message_subscription(%{id: 3}, _), do: nil
+    def send_message_subscription(%{id: 4}, _), do: nil
+    def send_message_subscription(subscription, user), do: # something
+  end
+  ```
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Util do    
+    # Rule 4
+    def report(user, order) do
+      # ...
+    end
+  end
+  ```
+  
+  Each application of this refactoring involves creating a new module, selecting the set of definitions that should be moved to that new module, and applying the [Moving a definition](#moving-a-definition) refactoring to each of those selected definitions. Any reference and dependency issues inherent in moving functions between modules are compensated for by the [Moving a definition](#moving-a-definition) refactoring. Although this does not happen in the above example, in some cases, after splitting an original module into several smaller and more cohesive modules, the name of the original module can no longer makes sense, providing an opportunity to also apply the [Rename an identifier](#rename-an-identifier) refactoring.
+  
+[▲ back to Index](#table-of-contents)
+___
+
 ## About
 
 This catalog was proposed by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC/UFMG][ASERG].
@@ -1079,6 +1179,7 @@ Our research is also part of the initiative called __[Research with Elixir][Rese
 [Duplicated Code]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#duplicated-code
 [Long Parameter List]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#long-parameter-list
 [Long Function]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#long-function
+[Large Module]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#large-class
 [Unnecessary Macros]: https://github.com/lucasvegi/Elixir-Code-Smells#unnecessary-macros
 
 [ICPC-ERA]: https://conf.researchr.org/track/icpc-2022/icpc-2022-era
