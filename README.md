@@ -646,7 +646,7 @@ ___
 
 * __Category:__ Functional Refactorings.
 
-* __Motivation:__ This refactoring is the inverse of [Merging multiple definitions](#merging-multiple-definitions). While Merge multiple definitions aims to group recursive functions into a single recursive function that returns a tuple, Splitting a definition aims to separate a recursive function by creating new recursive functions, each of them responsible for individually generating a respective element originally contained in a tuple.
+* __Motivation:__ This refactoring is the inverse of [Merging multiple definitions](#merging-multiple-definitions). While merge multiple definitions aims to group recursive functions into a single recursive function that returns a tuple, Splitting a definition aims to separate a recursive function by creating new recursive functions, each of them responsible for individually generating a respective element originally contained in a tuple.
 
 * __Examples:__ Take a look at the example in [Merging multiple definitions](#merging-multiple-definitions) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
 
