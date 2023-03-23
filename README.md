@@ -14,6 +14,7 @@
   * [Extract function](#extract-function)
   * [Turning anonymous into local functions](#turning-anonymous-into-local-functions)
   * [Merging multiple definitions](#merging-multiple-definitions)
+  * [Splitting a definition](#splitting-a-definition)
   * [Inline function](#inline-function)
   * [Inline macro substitution](#inline-macro-substitution)
   * [Folding against a function definition](#folding-against-a-function-definition)
@@ -550,7 +551,7 @@ ___
 
 * __Category:__ Functional Refactorings.
 
-* __Motivation:__ This refactoring is also an option for removing [Duplicated Code][Duplicated Code] and can optimize a codebase by sharing that code in a single location. There are situations where a codebase may have distinct functions that are complementary. Because they are complementary, these functions may have identical code snippets. When identified, these functions should be merged into a new function that will simultaneously perform the processing done by the original functions separately. The new function created by this refactoring will always return a tuple, where each original return provided by the merged functions will be contained in different elements of the tuple returned by the new function. In functional languages, this refactoring is also referred to as tupling.
+* __Motivation:__ This refactoring is also an option for removing [Duplicated Code][Duplicated Code] and can optimize a codebase by sharing that code in a single location, avoiding multiple traversals over the same data structure. There are situations where a codebase may have distinct functions that are complementary. Because they are complementary, these functions may have identical code snippets. When identified, these functions should be merged into a new function that will simultaneously perform the processing done by the original functions separately. The new function created by this refactoring will always return a tuple, where each original return provided by the merged functions will be contained in different elements of the tuple returned by the new function. In functional languages, this refactoring is also referred to as ``tupling``.
 
 * __Examples:__ The following code illustrates this refactoring. Before the refactoring, we have two functions in the ``MyList`` module. The ``take/2`` function takes an integer value ``n`` and a list as parameters, returning a new list composed of the first ``n`` elements of the original list. The ``drop/2`` function also takes an integer value ``n`` and a list as parameters, but ignores the first ``n`` elements of the original list, returning a new list composed of the remaining elements. Note that although ``take/2`` and ``drop/2`` return different values, they are complementary multi-clause functions and therefore have many nearly identical code snippets.
 
@@ -637,6 +638,17 @@ ___
   The functions ``take/2`` and ``drop/2`` can be deleted from ``MyList`` once all their calls have been replaced by calls to ``split_at/2``.
 
   These examples are based on Haskell code written in two papers. Source: [[1]](https://dl.acm.org/doi/10.1145/1706356.1706378), [[2]](https://www.cs.kent.ac.uk/pubs/2010/3009/index.html).
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Splitting a definition
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ This refactoring is the inverse of [Merging multiple definitions](#merging-multiple-definitions). While Merge multiple definitions aims to group recursive functions into a single recursive function that returns a tuple, Splitting a definition aims to separate a recursive function by creating new recursive functions, each of them responsible for individually generating a respective element originally contained in a tuple.
+
+* __Examples:__ Take a look at the example in [Merging multiple definitions](#merging-multiple-definitions) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
 
 [▲ back to Index](#table-of-contents)
 ___
