@@ -19,6 +19,7 @@
   * [Folding against a function definition](#folding-against-a-function-definition)
   * [Extract constant](#extract-constant)
   * [Temporary variable elimination](#temporary-variable-elimination)
+  * [Merge expressions](#merge-expressions)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -923,6 +924,111 @@ ___
   ```
 
   This refactoring can promote a significant simplification of some code, as well as avoid redundant computations that can harm performance.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Merge expressions
+
+* __Category:__ Traditional Refactorings.
+
+* __Motivation:__ This refactoring, in a way, behaves as the inverse of [Temporary variable elimination](#temporary-variable-elimination). When programming, we may sometimes come across unavoidably large and hard-to-understand expressions. With this refactoring, we can break down those expressions into smaller parts and assign them to local variables with meaningful names, thus facilitating the overall understanding of the code. In addition, this refactoring can help eliminate [Duplicated Code][Duplicated Code], as the variables extracted from the expressions can be reused in various parts of the codebase, avoiding the need for repetition of long expressions.
+
+* __Examples:__ The following code provides an example of this refactoring. Prior to the refactoring, we have a module ``Bhaskara`` composed of the function ``solve/3``, responsible for finding the roots of a quadratic equation. This function returns a tuple with the roots or their non-existence.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Bhaskara do
+    
+    def solve(a, b, c) do
+      if b*b - 4*a*c < 0 do
+        {:error, "No real roots"}
+      else
+        x1 = (-b + (b*b - 4*a*c) ** 0.5) / (2*a)
+        x2 = (-b - (b*b - 4*a*c) ** 0.5) / (2*a)
+        {:ok, {x1, x2}}
+      end
+    end
+
+  end
+
+  #...Use examples...
+  iex(17)> Bhaskara.solve(1, 3, -4) 
+  {:ok, {1.0, -4.0}}
+
+  iex(21)> Bhaskara.solve(1, 2, 1)
+  {:ok, {-1.0, -1.0}}
+
+  iex(22)> Bhaskara.solve(1, 2, 3)
+  {:error, "No real roots"}
+  ```
+
+  Note that in this function, besides the expression ``b*b - 4*a*c`` being repeated several times, including within a larger expression, the lack of meaning for ``b*b - 4*a*c`` can make the code less readable. We can solve this by extracting a new variable ``delta``, assigning ``b*b - 4*a*c`` to this new variable, and replacing all instances of this expression with the use of the ``delta`` variable.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Bhaskara do
+    
+    def solve(a, b, c) do
+      delta = (b*b - 4*a*c) #<- extracted variable!
+
+      if delta < 0 do
+        {:error, "No real roots"}
+      else
+        x1 = (-b + delta ** 0.5) / (2*a)
+        x2 = (-b - delta ** 0.5) / (2*a)
+        {:ok, {x1, x2}}
+      end
+    end
+
+  end
+
+  #...Use examples...
+  iex(17)> Bhaskara.solve(1, 3, -4) 
+  {:ok, {1.0, -4.0}}
+
+  iex(21)> Bhaskara.solve(1, 2, 1)
+  {:ok, {-1.0, -1.0}}
+
+  iex(22)> Bhaskara.solve(1, 2, 3)
+  {:error, "No real roots"}
+  ```
+
+  __[Curiosity] Recalling previous refactorings:__ Although the refactored code shown above has made the code more readable, it still has opportunities for applying other refactorings previously documented in this catalog. Note that for the calculation of the roots, we have two lines of code that are practically identical. In addition, we have two temporary variables (``x1`` and ``x2``) that have only the purpose of storing results that will be returned by the function. If we take this refactored version of the code after applying [Merge expressions](#merge-expressions) and apply a composite refactoring with the sequence of [Extract function](#extract-function) -> [Generalise a function definition](#generalise-a-function-definition) -> [Fold against a function definition](#folding-against-a-function-definition) -> [Temporary variable elimination](#temporary-variable-elimination), we can arrive at the following version of the code:
+  
+  ```elixir
+  # After a composite refactoring:
+
+  defmodule Bhaskara do
+    
+    defp root(a, b, delta, operation) do
+      operation.(-b, delta ** 0.5) / (2*a)
+    end
+
+    def solve(a, b, c) do
+      delta = (b*b - 4*a*c)
+
+      if delta < 0 do
+        {:error, "No real roots"}
+      else
+        {:ok, {root(a,b,delta,&Kernel.+/2), root(a,b,delta,&Kernel.-/2)}}
+      end
+    end
+
+  end
+
+  #...Use examples...
+  iex(17)> Bhaskara.solve(1, 3, -4) 
+  {:ok, {1.0, -4.0}}
+
+  iex(21)> Bhaskara.solve(1, 2, 1)
+  {:ok, {-1.0, -1.0}}
+
+  iex(22)> Bhaskara.solve(1, 2, 3)
+  {:error, "No real roots"}
+  ```
 
 [▲ back to Index](#table-of-contents)
 ___
