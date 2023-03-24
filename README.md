@@ -23,6 +23,7 @@
   * [Merge expressions](#merge-expressions)
   * [Splitting a large module](#splitting-a-large-module)
   * [Behaviour extraction](#behaviour-extraction)
+  * [Behaviour inlining](#behaviour-inlining)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -193,7 +194,7 @@ ___
 
 * __Motivation:__ This refactoring helps to eliminate the [Duplicated Code][Duplicated Code] code smell. In any programming language, this code smell can make the codebase harder to maintain due to restrictions on code reuse. When different functions have equivalent expression structures, that structure should be generalized into a new function, which will later be called in the body of the duplicated functions, replacing their original codes. After that refactoring, the programmer only needs to worry about maintaining these expressions in one place (generic function). The support for ``high-order functions`` in functional programming languages enhances the potential for generalizing provided by this refactoring.
 
-* __Examples:__ In Elixir, as well as in other functional languages like Erlang and Haskell, functions are treated as first-class citizens, which means functions can be assigned to variables, making it possible to define ``high-order functions``, which are functions that take one or more functions as arguments or return a function as its result. The following code illustrates this refactoring using a high-order function. Before the refactoring, we have two functions in the ``Gen`` module. The ``foo/1`` function takes a list as an argument and transforms it in two steps. First, it squares each of its elements and then multiplies each element by 3, returning a new list. The ``bar/1`` function operates similarly, receiving a list as an argument and also transforming it in two steps. First, it doubles the value of each element in the list and then returns a list containing only the elements divisible by 4. Although these two functions transform lists in different ways, they have duplicated structures.
+* __Examples:__ In Elixir, as well as in other functional languages such as Erlang and Haskell, functions are considered as first-class citizens. This means that functions can be assigned to variables, allowing the definition of ``higher-order functions``. Higher-order functions are those that take one or more functions as arguments or return a function as a result. The following code illustrates this refactoring using a ``high-order function``. Before the refactoring, we have two functions in the ``Gen`` module. The ``foo/1`` function takes a list as an argument and transforms it in two steps. First, it squares each of its elements and then multiplies each element by 3, returning a new list. The ``bar/1`` function operates similarly, receiving a list as an argument and also transforming it in two steps. First, it doubles the value of each element in the list and then returns a list containing only the elements divisible by 4. Although these two functions transform lists in different ways, they have duplicated structures.
 
   ```elixir
   # Before refactoring:
@@ -265,7 +266,7 @@ ___
 
 * __Motivation:__ This refactoring is used when it is necessary to request additional information from the callers of a function or the opposite situation, when some information passed by the callers is no longer necessary. The transformation promoted by this refactoring usually creates a new function with the same name as the original, but with a new parameter added or a parameter removed, and the body of the original function is replaced by a call to the new function, subsequently replacing the calls to the original function with calls to the new function. Thanks to the possibility of specifying default values for function parameters in Elixir, using the ``\\`` operator, we can simplify the mechanics of this refactoring, as shown in the following example.
 
-* __Examples:__ The following code has a ``foo/1`` function that always adds the constant +1 to the value passed as a parameter.
+* __Examples:__ The following code has a ``foo/1`` function that always sum the constant +1 to the value passed as a parameter.
 
   ```elixir
   # Before refactoring:
@@ -1010,7 +1011,7 @@ ___
   {:error, "No real roots"}
   ```
 
-  __[Curiosity] Recalling previous refactorings:__ Although the refactored code shown above has made the code more readable, it still has opportunities for applying other refactorings previously documented in this catalog. Note that for the calculation of the roots, we have two lines of code that are practically identical. In addition, we have two temporary variables (``x1`` and ``x2``) that have only the purpose of storing results that will be returned by the function. If we take this refactored version of the code after applying [Merge expressions](#merge-expressions) and apply a composite refactoring with the sequence of [Extract function](#extract-function) -> [Generalise a function definition](#generalise-a-function-definition) -> [Fold against a function definition](#folding-against-a-function-definition) -> [Temporary variable elimination](#temporary-variable-elimination), we can arrive at the following version of the code:
+  __Recalling previous refactorings:__ Although the refactored code shown above has made the code more readable, it still has opportunities for applying other refactorings previously documented in this catalog. Note that for the calculation of the roots, we have two lines of code that are practically identical. In addition, we have two temporary variables (``x1`` and ``x2``) that have only the purpose of storing results that will be returned by the function. If we take this refactored version of the code after applying [Merge expressions](#merge-expressions) and apply a composite refactoring with the sequence of [Extract function](#extract-function) -> [Generalise a function definition](#generalise-a-function-definition) -> [Fold against a function definition](#folding-against-a-function-definition) -> [Temporary variable elimination](#temporary-variable-elimination), we can arrive at the following version of the code:
   
   ```elixir
   # After a composite refactoring:
@@ -1152,7 +1153,7 @@ ___
 
 * __Motivation:__ This refactoring is similar to Extract Interface, proposed by Fowler and Beck for object-oriented languages. In Elixir, a ``behaviour`` serves as an interface, which is a contract that a module can fulfill by implementing functions in a guided way according to the formats of parameters and return types defined in the contract. A ``behaviour`` is an abstraction that defines only the functionality to be implemented, but not how that functionality is implemented. When we find a function that can be repeated in different modules, but performing special roles in each of them, it can be a good idea to abstract this function by extracting it to a ``behaviour``, standardizing a contract to be followed by all modules that implement or may implement it in the future.
 
-* __Examples:__ The following code example illustrates the use of this refactoring technique. In this case, the module ``Foo`` has two functions. The function ``print_result/2`` has a generic behavior, that is, it simply displays the result of an operation. On the other hand, the function ``math_operation/2`` has a special role in this module, which is to attempt to add two numbers and return a tuple that may have the operation's result or an error if invalid parameters are passed to the function call.
+* __Examples:__ The following code example illustrates the use of this refactoring technique. In this case, the module ``Foo`` has two functions. The function ``print_result/2`` has a generic behavior, that is, it simply displays the result of an operation. On the other hand, the function ``math_operation/2`` has a special role in this module, which is to attempt to sum two numbers and return a tuple that may have the operation's result or an error if invalid parameters are passed to the function call.
 
   ```elixir
   # Before refactoring:
@@ -1221,9 +1222,9 @@ ___
   {:error, "args not numeric"}
   ```
 
-  This refactoring is highly valuable since behaviour constructs allow static code analysis tools such as [Dialyzer][Dialyzer] to have a better understanding of the code, offer useful recommendations, and detect potential issues.
+  After this refactoring, the module ``Foo`` acts as the ``behaviour definition`` and the module ``Sum`` as the ``behaviour instance``. This refactoring is highly valuable since behaviour constructs allow static code analysis tools such as [Dialyzer][Dialyzer] to have a better understanding of the code, offer useful recommendations, and detect potential issues.
   
-  __[Curiosity] Recalling previous refactorings:__ Although this refactoring was successfully completed, note that it created a new opportunity for refactoring in the function ``Foo.print_result/2``. The first line of this function remained with a hard-coded call to ``Sum.math_operation/2``, which is an implementation of the ``@callback`` defined in the behaviour. Imagine that in the future the module ``Subtraction``, which also implements the ``Foo`` behaviour, is created:
+  __Recalling previous refactorings:__ Although this refactoring was successfully completed, note that it created a new opportunity for refactoring in the function ``Foo.print_result/2``. The first line of this function remained with a hard-coded call to ``Sum.math_operation/2``, which is an implementation of the ``@callback`` defined in the behaviour. Imagine that in the future the module ``Subtraction``, which also implements the ``Foo`` behaviour, is created:
 
   ```elixir
   defmodule Subtraction do
@@ -1237,29 +1238,42 @@ ___
   end
   ```
 
-  To make ``Foo.print_result/2`` able to display the results of any possible implementation of the ``Foo`` behaviour (e.g. ``Sum`` and ``Subtraction``), we can apply [Generalise a function definition](#generalise-a-function-definition) to it, resulting in the following code: 
+  To make ``Foo.print_result/2`` able to display the results of any possible implementation of the ``Foo`` behaviour (e.g. ``Sum`` and ``Subtraction``), we can apply [Generalise a function definition](#generalise-a-function-definition) to it, resulting in the following code:
 
   ```elixir
   defmodule Foo do
     @callback math_operation(a :: any(), b :: any()) :: {atom(), any()}
 
-    def print_result_2(a, b, op) do
+    def print_result(a, b, op) do
       {_, r} = op.(a, b)                #<- generalised!
       IO.puts("Operation result: #{r}")
     end
   end
 
   #...Use examples...
-  iex(1)> Foo.print_result_2(1, 2, &Sum.math_operation/2)        
+  iex(1)> Foo.print_result(1, 2, &Sum.math_operation/2)        
   Operation result: 3
 
-  iex(2)> Foo.print_result_2(1, 2, &Subtraction.math_operation/2)
+  iex(2)> Foo.print_result(1, 2, &Subtraction.math_operation/2)
   Operation result: -1
   ```
   
   These examples are based on Erlang code written in this paper: [[1]](https://dl.acm.org/doi/10.1145/3064899.3064909)
   
 [▲ back to Index](#table-of-contents)
+
+### Behaviour inlining
+
+* __Category:__ Traditional Refactorings.
+
+* __Motivation:__ This refactoring is the inverse of [Behaviour extraction](#behaviour-extraction). Remembering, behaviour extraction aims to define a callback to compose a standardized interface for a function in a module that acts as a ``behaviour definition`` and move the existing version of that function to another module that follows this standardization, implementing the callback (``behaviour instance``). In contrast, Behaviour inlining aims to eliminate the implementations of callbacks in a ``behaviour instance``.
+
+* __Examples:__ To perform this elimination, the function that implements a callback in a ``behaviour instance`` is moved to the ``behaviour definition`` module using [Moving a definition](#moving-a-definition), which will handle possible naming conflicts and update references to that function. If the moved function was the only callback implemented by the ``behaviour instance`` module, the definition of the implemented behaviour (``@behaviour``) should be removed the ``behaviour instance``, thus turning it into a regular module. Additionally, when the moved function is the last existing implementation of the callback throughout the codebase, this callback should cease to exist, being removed from the ``behaviour definition`` module.
+  
+  To better understand, take a look at the example in [Behaviour extraction](#behaviour-extraction) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
+
+[▲ back to Index](#table-of-contents)
+___
 
 ## About
 
