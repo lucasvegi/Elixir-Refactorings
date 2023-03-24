@@ -1204,14 +1204,15 @@ ___
   # After refactoring:
 
   defmodule Sum do
-    @behaviour Foo
+    @behaviour Foo  #<- behaviour implementation
 
-    @impl Foo
+    @impl Foo       #<- behaviour implementation
     def math_operation(a, b) when is_number(a) and is_number(b) do
       {:ok, a + b}
     end
     def math_operation(_, _), do: {:error, "args not numeric"}
   end
+
   #...Use examples...
   iex(1)> Sum.math_operation(1, 2)
   {:ok, 3}
@@ -1226,9 +1227,9 @@ ___
 
   ```elixir
   defmodule Subtraction do
-    @behaviour Foo
+    @behaviour Foo  #<- behaviour implementation
 
-    @impl Foo
+    @impl Foo       #<- behaviour implementation
     def math_operation(a, b) when is_number(a) and is_number(b) do
       {:ok, a - b}
     end
