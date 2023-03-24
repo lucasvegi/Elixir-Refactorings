@@ -1186,7 +1186,8 @@ ___
   # After refactoring:
 
   defmodule Foo do
-    @callback math_operation(a :: any(), b :: any()) :: {atom(), any()} # <- behaviour definition!
+    # behaviour definition
+    @callback math_operation(a :: any(), b :: any()) :: {atom(), any()} 
 
     def print_result(a, b) do
       {_, r} = Sum.math_operation(a, b) # <- new refactoring opportunity!
@@ -1254,7 +1255,8 @@ ___
   iex(2)> Foo.print_result_2(1, 2, &Subtraction.math_operation/2)
   Operation result: -1
   ```
-
+  
+  These examples are based on Erlang code written in this paper: [[1]](https://dl.acm.org/doi/10.1145/3064899.3064909)
   
 [▲ back to Index](#table-of-contents)
 
