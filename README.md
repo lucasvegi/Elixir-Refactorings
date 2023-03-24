@@ -22,6 +22,7 @@
   * [Temporary variable elimination](#temporary-variable-elimination)
   * [Merge expressions](#merge-expressions)
   * [Splitting a large module](#splitting-a-large-module)
+  * [Behaviour extraction](#behaviour-extraction)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -999,13 +1000,13 @@ ___
   end
 
   #...Use examples...
-  iex(17)> Bhaskara.solve(1, 3, -4) 
+  iex(1)> Bhaskara.solve(1, 3, -4) 
   {:ok, {1.0, -4.0}}
 
-  iex(21)> Bhaskara.solve(1, 2, 1)
+  iex(2)> Bhaskara.solve(1, 2, 1)
   {:ok, {-1.0, -1.0}}
 
-  iex(22)> Bhaskara.solve(1, 2, 3)
+  iex(3)> Bhaskara.solve(1, 2, 3)
   {:error, "No real roots"}
   ```
 
@@ -1033,13 +1034,13 @@ ___
   end
 
   #...Use examples...
-  iex(17)> Bhaskara.solve(1, 3, -4) 
+  iex(1)> Bhaskara.solve(1, 3, -4) 
   {:ok, {1.0, -4.0}}
 
-  iex(21)> Bhaskara.solve(1, 2, 1)
+  iex(2)> Bhaskara.solve(1, 2, 1)
   {:ok, {-1.0, -1.0}}
 
-  iex(22)> Bhaskara.solve(1, 2, 3)
+  iex(3)> Bhaskara.solve(1, 2, 3)
   {:error, "No real roots"}
   ```
 
@@ -1145,6 +1146,118 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
+### Behaviour extraction
+
+* __Category:__ Traditional Refactorings.
+
+* __Motivation:__ This refactoring is similar to Extract Interface, proposed by Fowler and Beck for object-oriented languages. In Elixir, a ``behaviour`` serves as an interface, which is a contract that a module can fulfill by implementing functions in a guided way according to the formats of parameters and return types defined in the contract. A ``behaviour`` is an abstraction that defines only the functionality to be implemented, but not how that functionality is implemented. When we find a function that can be repeated in different modules, but performing special roles in each of them, it can be a good idea to abstract this function by extracting it to a ``behaviour``, standardizing a contract to be followed by all modules that implement or may implement it in the future.
+
+* __Examples:__ The following code example illustrates the use of this refactoring technique. In this case, the module ``Foo`` has two functions. The function ``print_result/2`` has a generic behavior, that is, it simply displays the result of an operation. On the other hand, the function ``math_operation/2`` has a special role in this module, which is to attempt to add two numbers and return a tuple that may have the operation's result or an error if invalid parameters are passed to the function call.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def math_operation(a, b) when is_number(a) and is_number(b) do
+      {:ok, a + b}
+    end
+    def math_operation(_, _), do: {:error, "args not numeric"}
+
+    def print_result(a, b) do
+      {_, r} = math_operation(a, b)
+      IO.puts("Operation result: #{r}")
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.math_operation(1, 2)   
+  {:ok, 3}
+  
+  iex(2)> Foo.math_operation(1, "lucas")
+  {:error, "args not numeric"}
+  
+  iex(3)> Foo.print_result(1, 2)        
+  Operation results: 3
+  ```
+
+  Although this is a simple example, note that ``math_operation/2`` could eventually be implemented in other modules to perform different special roles, such as division, multiplication, subtraction, etc. With that in mind, we can standardize a contract for ``math_operation/2``, guiding developers to follow the same format every time this function is implemented in the codebase. To do so, this refactoring will transform ``Foo`` into a behaviour definition by creating a ``@callback`` that defines the format of ``math_operation/2``. In addition, using [Moving a definition](#moving-a-definition), we will move ``math_operation/2`` to a new module called ``Sum``, updating all previous calls to ``math_operation/2``. Finally, ``Sum`` should explicitly implement the contract defined by ``Foo`` using the ``@behaviour`` definition.
+  
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    @callback math_operation(a :: any(), b :: any()) :: {atom(), any()} # <- behaviour definition!
+
+    def print_result(a, b) do
+      {_, r} = Sum.math_operation(a, b) # <- new refactoring opportunity!
+      IO.puts("Operation result: #{r}")
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.print_result(1, 2)      
+  Operation result: 3
+  ```
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Sum do
+    @behaviour Foo
+
+    @impl Foo
+    def math_operation(a, b) when is_number(a) and is_number(b) do
+      {:ok, a + b}
+    end
+    def math_operation(_, _), do: {:error, "args not numeric"}
+  end
+  #...Use examples...
+  iex(1)> Sum.math_operation(1, 2)
+  {:ok, 3}
+  
+  iex(2)> Sum.math_operation(1, "Lucas")
+  {:error, "args not numeric"}
+  ```
+
+  This refactoring is highly valuable since behaviour constructs allow static code analysis tools such as [Dialyzer][Dialyzer] to have a better understanding of the code, offer useful recommendations, and detect potential issues.
+  
+  __[Curiosity] Recalling previous refactorings:__ Although this refactoring was successfully completed, note that it created a new opportunity for refactoring in the function ``Foo.print_result/2``. The first line of this function remained with a hard-coded call to ``Sum.math_operation/2``, which is an implementation of the ``@callback`` defined in the behaviour. Imagine that in the future the module ``Subtraction``, which also implements the ``Foo`` behaviour, is created:
+
+  ```elixir
+  defmodule Subtraction do
+    @behaviour Foo
+
+    @impl Foo
+    def math_operation(a, b) when is_number(a) and is_number(b) do
+      {:ok, a - b}
+    end
+    def math_operation(_, _), do: {:error, "args not numeric"}
+  end
+  ```
+
+  To make ``Foo.print_result/2`` able to display the results of any possible implementation of the ``Foo`` behaviour (e.g. ``Sum`` and ``Subtraction``), we can apply [Generalise a function definition](#generalise-a-function-definition) to it, resulting in the following code: 
+
+  ```elixir
+  defmodule Foo do
+    @callback math_operation(a :: any(), b :: any()) :: {atom(), any()}
+
+    def print_result_2(a, b, op) do
+      {_, r} = op.(a, b)                #<- generalised!
+      IO.puts("Operation result: #{r}")
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.print_result_2(1, 2, &Sum.math_operation/2)        
+  Operation result: 3
+
+  iex(2)> Foo.print_result_2(1, 2, &Subtraction.math_operation/2)
+  Operation result: -1
+  ```
+
+  
+[▲ back to Index](#table-of-contents)
+
 ## About
 
 This catalog was proposed by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC/UFMG][ASERG].
@@ -1181,6 +1294,7 @@ Our research is also part of the initiative called __[Research with Elixir][Rese
 [Long Function]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#long-function
 [Large Module]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#large-class
 [Unnecessary Macros]: https://github.com/lucasvegi/Elixir-Code-Smells#unnecessary-macros
+[Dialyzer]: https://hex.pm/packages/dialyxir
 
 [ICPC-ERA]: https://conf.researchr.org/track/icpc-2022/icpc-2022-era
 [preprint-copy]: https://doi.org/10.48550/arXiv.2203.08877
