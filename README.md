@@ -24,6 +24,8 @@
   * [Splitting a large module](#splitting-a-large-module)
   * [Behaviour extraction](#behaviour-extraction)
   * [Behaviour inlining](#behaviour-inlining)
+  * [Generate function specification](#generate-function-specification)
+  * [Transforming list appends and subtracts](#transforming-list-appends-and-subtracts)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -969,13 +971,13 @@ ___
   end
 
   #...Use examples...
-  iex(17)> Bhaskara.solve(1, 3, -4) 
+  iex(1)> Bhaskara.solve(1, 3, -4) 
   {:ok, {1.0, -4.0}}
 
-  iex(21)> Bhaskara.solve(1, 2, 1)
+  iex(2)> Bhaskara.solve(1, 2, 1)
   {:ok, {-1.0, -1.0}}
 
-  iex(22)> Bhaskara.solve(1, 2, 3)
+  iex(3)> Bhaskara.solve(1, 2, 3)
   {:error, "No real roots"}
   ```
 
@@ -1261,6 +1263,7 @@ ___
   These examples are based on Erlang code written in this paper: [[1]](https://dl.acm.org/doi/10.1145/3064899.3064909)
   
 [▲ back to Index](#table-of-contents)
+___
 
 ### Behaviour inlining
 
@@ -1271,6 +1274,108 @@ ___
 * __Examples:__ To perform this elimination, the function that implements a callback in a ``behaviour instance`` is moved to the ``behaviour definition`` module using [Moving a definition](#moving-a-definition), which will handle possible naming conflicts and update references to that function. If the moved function was the only callback implemented by the ``behaviour instance`` module, the definition of the implemented behaviour (``@behaviour``) should be removed the ``behaviour instance``, thus turning it into a regular module. Additionally, when the moved function is the last existing implementation of the callback throughout the codebase, this callback should cease to exist, being removed from the ``behaviour definition`` module.
   
   To better understand, take a look at the example in [Behaviour extraction](#behaviour-extraction) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Generate function specification
+
+* __Category:__ Elixir-specific Refactorings*.
+
+* __Motivation:__ Despite being a dynamically-typed language, Elixir offers a feature to compensate for the lack of a static type system. By using ``Typespecs``, we can specify the types of each function parameter and of the return value. Utilizing this Elixir feature not only improves documentation, but also can enhance code readability and prepare it to be analyzed for tools like [Dialyzer][Dialyzer], enabling the detection of type inconsistencies, and potential bugs. The goal of this refactoring is simply to use Typespecs in a function to promote the aforementioned benefits of using this feature.
+
+* __Examples:__ The following code has already been presented in another context in the refactoring [Merge expressions](#merge-expressions). Prior to the refactoring, we have a module ``Bhaskara`` composed of the function ``solve/3``, responsible for finding the roots of a quadratic equation. Note that this function should receive three real numbers as parameters and return a tuple of two elements. The first element of this tuple is always an atom, while the second element may be a String (if there are no roots) or a tuple containing the two roots of the quadratic equation.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Bhaskara do
+    
+    def solve(a, b, c) do
+      delta = (b*b - 4*a*c)
+
+      if delta < 0 do
+        {:error, "No real roots"}
+      else
+        x1 = (-b + delta ** 0.5) / (2*a)
+        x2 = (-b - delta ** 0.5) / (2*a)
+        {:ok, {x1, x2}}
+      end
+    end
+
+  end
+
+  #...Use examples...
+  iex(1)> Bhaskara.solve(1, 3, -4) 
+  {:ok, {1.0, -4.0}}
+
+  iex(2)> Bhaskara.solve(1, 2, 3)
+  {:error, "No real roots"}
+  ```
+
+  To easier this code understanding and leverage the other aforementioned benefits, we can generate a function specification using the ``@spec`` module attribute which is a default feature of Elixir. This module attribute should be placed immediately before the function definition, following the pattern ``@spec function_name(arg_type, arg_type...) :: return_type``.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Bhaskara do
+    
+    @spec solve(number, number, number) :: {atom, String.t() | {number, number}}
+    def solve(a, b, c) do
+      delta = (b*b - 4*a*c)
+
+      if delta < 0 do
+        {:error, "No real roots"}
+      else
+        x1 = (-b + delta ** 0.5) / (2*a)
+        x2 = (-b - delta ** 0.5) / (2*a)
+        {:ok, {x1, x2}}
+      end
+    end
+
+  end
+
+  #...Retrieving code documentation...
+  iex(1)> h Bhaskara.solve/3
+                             
+  @spec solve(number(), number(), number()) ::
+          {atom(), String.t() | {number(), number()}}
+  ```
+
+  Note that with the use of ``@spec``, we can easily check the function specification using Elixir's helper.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Transforming list appends and subtracts
+
+* __Category:__ Functional Refactorings*.
+
+* __Motivation:__ This is a refactoring that can make the code shorter and even more readable. Elixir's ``Enum`` module provides native functions to append an element to the end of a list (``concat/2``) and to subtract elements (``reject/2``) from a list. Although these functions serve their purposes well, Elixir also has specific operators equivalent to these functions, allowing the code to be simplified. This refactoring aims to transform calls to the ``Enum.concat/2`` and ``Enum.reject/2`` functions into uses of the ``Kernel.++/2`` and ``Kernel.--/2`` operators, respectively.
+
+* __Examples:__ The following code shows an example of this simple refactoring. ``Enum.concat/2`` receives two lists as parameters and appends the elements of the second list to the end of the first. On the other hand, function ``Enum.reject/2`` receives a list and an anonymous function as parameters. This anonymous function is responsible for comparing each element of a second list with the elements of the first list, allowing the subtraction of elements present in both lists.
+
+  ```elixir
+  # Before refactoring:
+
+  iex(1)> Enum.concat([1, 2, 3, 4], [5, 6, 7])
+  [1, 2, 3, 4, 5, 6, 7]
+
+  iex(2)> Enum.reject([1, 2, 3, 4, 5], &(Enum.member?([1, 3], &1)))
+  [2, 4, 5]
+  ```
+
+  We can replace the use of functions from the ``Enum`` module with their equivalent specific operators, greatly simplifying the code as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  iex(1)> [1, 2, 3, 4] ++ [5, 6, 7]
+  [1, 2, 3, 4, 5, 6, 7]
+
+  iex(2)> [1, 2, 3, 4, 5] -- [1, 3]
+  [2, 4, 5]                           
+  ```
 
 [▲ back to Index](#table-of-contents)
 ___
