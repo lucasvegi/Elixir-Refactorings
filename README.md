@@ -1246,8 +1246,8 @@ ___
   defmodule Foo do
     @callback math_operation(a :: any(), b :: any()) :: {atom(), any()}
 
-    def print_result(a, b, op) do
-      {_, r} = op.(a, b)                #<- generalised!
+    def print_result(a, b, math_operation) do
+      {_, r} = math_operation.(a, b)                #<- generalised!
       IO.puts("Operation result: #{r}")
     end
   end
