@@ -29,6 +29,7 @@
   * [Transform to list comprehension](#transform-to-list-comprehension)
   * [Nested list functions to comprehension](#nested-list-functions-to-comprehension)
   * [List comprehension simplifications](#list-comprehension-simplifications)
+  * [From tuple to struct](#from-tuple-to-struct)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -1453,6 +1454,46 @@ ___
 
 [▲ back to Index](#table-of-contents)
 ___
+
+### From tuple to struct
+
+* __Category:__ Functional Refactorings*.
+
+* __Motivation:__ In Elixir, as well as in other functional languages like Erlang and Haskell, tuples are one of the most commonly used data structures. They are typically used to group a small and fixed amount of values. Although they are very useful, using tuples can make code less readable, as some details of the data representation are exposed in the code due to the inability to name the elements that compose a tuple. This refactoring aims to transform tuples into structs, which are data structures that allow naming their fields, thus providing a more abstract interface for the data and improving the code readability.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, the ``discount/2`` function of the ``Order`` module receives a tuple composed of order data and a discount percentage to be applied to the total value of the order. This function applies the discount to the total value of the order and returns a new tuple with the updated value.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Order do
+    def discount(tuple, value) do
+      put_elem(tuple, 2, elem(tuple, 2) * value)
+    end
+  end
+  
+  iex(1)> Order.discount({:s1, "Lucas", 150.0}, 0.5)
+  {:s1, "Lucas", 75.0}
+  ```
+
+  We can replace the use of this tuple by creating a struct ``%Order{}`` that contains the named data of an order, abstracting the interface for accessing this data and improving the readability of the code.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Order do
+    def discount(order, value) do
+      %Order{order | total: order.total * value}
+    end
+  end
+  
+  iex(1)> Order.discount(%Order{id: :s1, costumer: "Lucas", total: 150.0}, 0.5)
+  %Order{id: :s1, costumer: "Lucas", total: 75.0}                     
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
 
 ## About
 
