@@ -26,6 +26,8 @@
   * [Behaviour inlining](#behaviour-inlining)
   * [Generate function specification](#generate-function-specification)
   * [Transforming list appends and subtracts](#transforming-list-appends-and-subtracts)
+  * [List map to comprehension](#list-map-to-comprehension)
+  * [List filter to comprehension](#list-filter-to-comprehension)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -1375,6 +1377,60 @@ ___
 
   iex(2)> [1, 2, 3, 4, 5] -- [1, 3]
   [2, 4, 5]                           
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### List map to comprehension
+
+* __Category:__ Functional Refactorings*.
+
+* __Motivation:__ A list comprehension is a syntactic construction for creating a list based on existing ones. This feature is based on the mathematical notation for defining sets and is very common in functional languages ​​such as Haskell, Erlang, Clojure, and Elixir. The Elixir language provides a native ``high-order function`` named ``Enum.map/2``, which takes a list and an anonymous function as parameters, creating a new list composed of each element of the original list with values altered by applying the anonymous function. This refactoring aims to transform a call to ``Enum.map/2`` into a list comprehension, creating a semantically equivalent code that can be more declarative.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we are using ``Enum.map/2`` to create a new list containing the elements of the original list squared.
+
+  ```elixir
+  # Before refactoring:
+
+  iex(1)> Enum.map([2, 3, 4], &(&1 * &1))
+  [4, 9, 16]
+  ```
+
+  We can replace the use of ``Enum.map/2`` with the creation of a semantically equivalent list comprehension in Elixir, making the code more declarative as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  iex(1)> for x <- [2, 3, 4], do: x * x
+  [4, 9, 16]                       
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### List filter to comprehension
+
+* __Category:__ Functional Refactorings*.
+
+* __Motivation:__ A list comprehension is a syntactic construction for creating a list based on existing ones. This feature is based on the mathematical notation for defining sets and is very common in functional languages ​​such as Haskell, Erlang, Clojure, and Elixir. The Elixir language provides a native ``high-order function`` named ``Enum.filter/2``, which takes a list and an anonymous function as parameters, creating a new list composed of elements from the original list that pass the filter established by the anonymous function. This refactoring aims to transform a call to ``Enum.filter/2`` into a list comprehension, creating a semantically equivalent code that can be more declarative.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we are using ``Enum.filter/2`` to create a new list containing only the even numbers present in the original list.
+
+  ```elixir
+  # Before refactoring:
+
+  iex(1)> Enum.filter([1, 2, 3, 4, 5], &(rem(&1, 2) == 0))
+  [2, 4]
+  ```
+
+  We can replace the use of ``Enum.filter/2`` with the creation of a semantically equivalent list comprehension in Elixir, making the code more declarative as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  iex(1)> for x <- [1, 2, 3, 4, 5], rem(x, 2) == 0, do: x 
+  [2, 4]                       
   ```
 
 [▲ back to Index](#table-of-contents)
