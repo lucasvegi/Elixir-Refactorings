@@ -26,8 +26,9 @@
   * [Behaviour inlining](#behaviour-inlining)
   * [Generate function specification](#generate-function-specification)
   * [Transforming list appends and subtracts](#transforming-list-appends-and-subtracts)
-  * [List map to comprehension](#list-map-to-comprehension)
-  * [List filter to comprehension](#list-filter-to-comprehension)
+  * [Transform to list comprehension](#transform-to-list-comprehension)
+  * [Nested list functions to comprehension](#nested-list-functions-to-comprehension)
+  * [List comprehension simplifications](#list-comprehension-simplifications)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -1382,56 +1383,73 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### List map to comprehension
+### Transform to list comprehension
 
-* __Category:__ Functional Refactorings*.
+* __Category:__ Elixir-specific Refactorings*.
 
-* __Motivation:__ A list comprehension is a syntactic construction for creating a list based on existing ones. This feature is based on the mathematical notation for defining sets and is very common in functional languages ​​such as Haskell, Erlang, Clojure, and Elixir. The Elixir language provides a native ``high-order function`` named ``Enum.map/2``, which takes a list and an anonymous function as parameters, creating a new list composed of each element of the original list with values altered by applying the anonymous function. This refactoring aims to transform a call to ``Enum.map/2`` into a list comprehension, creating a semantically equivalent code that can be more declarative.
+* __Motivation:__ Elixir, like Erlang, provides several built-in ``high-order functions`` capable of taking lists as parameters and returning new lists modified from the original. In Elixir, ``Enum.map/2`` takes a list and an anonymous function as parameters, creating a new list composed of each element of the original list with values altered by applying the anonymous function. On the other hand, the function ``Enum.filter/2`` also takes a list and an anonymous function as parameters but creates a new list composed of elements from the original list that pass the filter established by the anonymous function. A list comprehension is another syntactic construction capable to create a list based on existing ones. This feature is based on the mathematical notation for defining sets and is very common in functional languages such as Haskell, Erlang, Clojure, and Elixir. This refactoring aims to transform calls to ``Enum.map/2`` and ``Enum.filter/2`` into list comprehensions, creating a semantically equivalent code that can be more declarative and easy to read.
 
-* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we are using ``Enum.map/2`` to create a new list containing the elements of the original list squared.
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we are using ``Enum.map/2`` to create a new list containing the elements of the original list squared. Furthermore, we are using ``Enum.filter/2`` to create a new list containing only the even numbers present in the original list.
 
   ```elixir
   # Before refactoring:
 
   iex(1)> Enum.map([2, 3, 4], &(&1 * &1))
   [4, 9, 16]
+
+  iex(2)> Enum.filter([1, 2, 3, 4, 5], &(rem(&1, 2) == 0))
+  [2, 4]
   ```
 
-  We can replace the use of ``Enum.map/2`` with the creation of a semantically equivalent list comprehension in Elixir, making the code more declarative as shown below.
+  We can replace the use of ``Enum.map/2`` and ``Enum.filter/2`` with the creation of semantically equivalent list comprehensions in Elixir, making the code more declarative as shown below.
 
   ```elixir
   # After refactoring:
 
   iex(1)> for x <- [2, 3, 4], do: x * x
-  [4, 9, 16]                       
+  [4, 9, 16]
+
+  iex(2)> for x <- [1, 2, 3, 4, 5], rem(x, 2) == 0, do: x 
+  [2, 4]                       
   ```
 
 [▲ back to Index](#table-of-contents)
 ___
 
-### List filter to comprehension
+### Nested list functions to comprehension
 
-* __Category:__ Functional Refactorings*.
+* __Category:__ Elixir-specific Refactorings*.
 
-* __Motivation:__ A list comprehension is a syntactic construction for creating a list based on existing ones. This feature is based on the mathematical notation for defining sets and is very common in functional languages ​​such as Haskell, Erlang, Clojure, and Elixir. The Elixir language provides a native ``high-order function`` named ``Enum.filter/2``, which takes a list and an anonymous function as parameters, creating a new list composed of elements from the original list that pass the filter established by the anonymous function. This refactoring aims to transform a call to ``Enum.filter/2`` into a list comprehension, creating a semantically equivalent code that can be more declarative.
+* __Motivation:__ This refactoring is a specific instance of [Transform to list comprehension](#transform-to-list-comprehension). When ``Enum.map/2`` and ``Enum.filter/2`` are used in a nested way to generate a new list, the code readability is compromised, and we also have an inefficient code, since the original list can be visited more than once and an intermediate list needs to be built. This refactoring, also referred to as ``deforestation``, aims to transform nested calls to ``Enum.map/2`` and ``Enum.filter/2`` into a list comprehension, creating a semantically equivalent code that can be more readable and more efficient.
 
-* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we are using ``Enum.filter/2`` to create a new list containing only the even numbers present in the original list.
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we are using ``Enum.map/2`` and ``Enum.filter/2`` in a nested way to create a new list containing only the even elements of the original list squared
 
   ```elixir
   # Before refactoring:
 
-  iex(1)> Enum.filter([1, 2, 3, 4, 5], &(rem(&1, 2) == 0))
-  [2, 4]
+  iex(1)> Enum.filter([1, 2, 3, 4, 5], &(rem(&1, 2) == 0)) |> Enum.map(&(&1 * &1))
+  [4, 16]
   ```
 
-  We can replace the use of ``Enum.filter/2`` with the creation of a semantically equivalent list comprehension in Elixir, making the code more declarative as shown below.
+  We can replace these nested calls with the creation of semantically equivalent list comprehension in Elixir, making the code more declarative and efficient as shown below.
 
   ```elixir
   # After refactoring:
 
-  iex(1)> for x <- [1, 2, 3, 4, 5], rem(x, 2) == 0, do: x 
-  [2, 4]                       
+  iex(1)> for x <- [1, 2, 3, 4, 5], rem(x, 2) == 0, do: x * x
+  [4, 16]                       
   ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### List comprehension simplifications
+
+* __Category:__ Elixir-specific Refactorings*.
+
+* __Motivation:__ This refactoring is the inverse of [Transform to list comprehension](#transform-to-list-comprehension) and [Nested list functions to comprehension](#nested-list-functions-to-comprehension). We can apply this refactoring to existing list comprehensions in the Elixir codebase, transforming them into semantically equivalent calls to the functions ``Enum.map/2`` or ``Enum.filter/2``.
+
+* __Examples:__ Take a look at the examples in [Transform to list comprehension](#transform-to-list-comprehension) and [Nested list functions to comprehension](#nested-list-functions-to-comprehension) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
 
 [▲ back to Index](#table-of-contents)
 ___
