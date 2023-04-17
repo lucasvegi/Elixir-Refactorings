@@ -1603,8 +1603,8 @@ ___
   # Before refactoring:
 
   defmodule Order do
-    def discount(%Order{total: t, customer: c} = struct, value) when t >= 100.0 and c == "Lucas" do
-      %Order{struct | total: t * value}
+    def discount(%Order{total: t, customer: c} = s, value) when t >= 100.0 and c == "Lucas" do
+      %Order{s | total: t * value}
     end
   end
   
@@ -1622,8 +1622,8 @@ ___
   # After refactoring:
 
   defmodule Order do
-    def discount(%Order{total: t, customer: "Lucas"} = struct, value) when t >= 100.0 do
-      %Order{struct | total: t * value}
+    def discount(%Order{total: t, customer: "Lucas"} = s, value) when t >= 100.0 do
+      %Order{s | total: t * value}
     end
   end
   
