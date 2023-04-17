@@ -30,6 +30,8 @@
   * [Nested list functions to comprehension](#nested-list-functions-to-comprehension)
   * [List comprehension simplifications](#list-comprehension-simplifications)
   * [From tuple to struct](#from-tuple-to-struct)
+  * [Struct guard to matching](#struct-guard-to-matching)
+  * [Struct field access elimination](#struct-field-access-elimination)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -1494,6 +1496,93 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
+### Struct guard to matching
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ In Elixir, as well as in other functional languages like Erlang and Haskell, guards are mechanisms used to perform more complex checks that would not be possible to do using just pattern matching. Although very useful, when guards are used unnecessarily to perform checks that could be done with just pattern matching, the code can become verbose and less readable. This refactoring focuses on transforming the use of ``is_struct/1`` or ``is_struct/2`` function calls into guards, for explicit pattern matching usage.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, the ``discount/2`` function of the ``Order`` module use the ``is_struct/2`` function to check if their first parameter is a struct of type ``Order``.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Order do
+    def discount(struct, value) when is_struct(struct, Order) do
+      %Order{struct | total: struct.total * value}
+    end
+  end
+  
+  iex(1)> Order.discount(%Order{id: :s1, costumer: "Lucas", total: 150.0}, 0.5) 
+  %Order{id: :s1, costumer: "Lucas", total: 75.0}
+
+  iex(2)> Order.discount(%{id: :s1, costumer: "Lucas", total: 150.0}, 0.5)   #<= Used Map instead Struct!    
+  ** (FunctionClauseError) no function clause matching in Order.discount/2
+  ```
+
+  Since the check performed by the ``is_struct/2`` guard is simple, it can be replaced by directly using pattern matching on the first parameter of the ``discount/2``.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Order do
+    def discount(%Order{} = struct, value) do
+      %Order{struct | total: struct.total * value}
+    end
+  end
+  
+  iex(1)> Order.discount(%Order{id: :s1, costumer: "Lucas", total: 150.0}, 0.5) 
+  %Order{id: :s1, costumer: "Lucas", total: 75.0}
+
+  iex(2)> Order.discount(%{id: :s1, costumer: "Lucas", total: 150.0}, 0.5)   #<= Used Map instead Struct!    
+  ** (FunctionClauseError) no function clause matching in Order.discount/2                     
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Struct field access elimination
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ In Elixir, as well as in other functional languages like Erlang and Haskell, it's possible for a function to receive ``structs``, or equivalent data types, as parameters and then access fields of these structs within its body or even in its signature to perform checks in guards. This refactoring focuses on replacing direct access to fields of a struct with the use of temporary variables that hold values extracted from these fields, which can then reduce the size of the code.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, the ``discount/2`` function of the ``Order`` module accesses the ``total`` field of the ``struct`` received as a parameter in two places, first to perform a guard check in its signature and then within its body to calculate the new value.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Order do
+    def discount(%Order{} = struct, value) when struct.total >= 100.0 do
+      %Order{struct | total: struct.total * value}
+    end
+  end
+  
+  iex(1)> Order.discount(%Order{id: :s1, costumer: "Lucas", total: 150.0}, 0.5) 
+  %Order{id: :s1, costumer: "Lucas", total: 75.0}
+  ```
+
+  To reduce the size of this code, we can use pattern matching to extract the value of the ``total`` field to a temporary variable ``t`` and replace all direct accesses to the ``total`` field with the use of the variable ``t``.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Order do
+    def discount(%Order{total: t} = struct, value) when t >= 100.0 do
+      %Order{struct | total: t * value}
+    end
+  end
+  
+  iex(1)> Order.discount(%Order{id: :s1, costumer: "Lucas", total: 150.0}, 0.5) 
+  %Order{id: :s1, costumer: "Lucas", total: 75.0}                   
+  ```
+
+  Note that the more direct accesses to a field of a struct exist before refactoring, the more benefits this refactoring will bring in reducing the size of the code. 
+  
+  When struct fields are accessed exclusively in the function signature or its body, we must be careful not to introduce the code smell [Complex extractions in clauses][Complex extractions in clauses] with this refactoring.
+
+[▲ back to Index](#table-of-contents)
+___
 
 ## About
 
@@ -1531,6 +1620,7 @@ Our research is also part of the initiative called __[Research with Elixir][Rese
 [Long Function]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#long-function
 [Large Module]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#large-class
 [Unnecessary Macros]: https://github.com/lucasvegi/Elixir-Code-Smells#unnecessary-macros
+[Complex extractions in clauses]: https://github.com/lucasvegi/Elixir-Code-Smells#complex-extractions-in-clauses
 [Dialyzer]: https://hex.pm/packages/dialyxir
 
 [ICPC-ERA]: https://conf.researchr.org/track/icpc-2022/icpc-2022-era
