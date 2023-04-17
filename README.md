@@ -33,6 +33,8 @@
   * [Struct guard to matching](#struct-guard-to-matching)
   * [Struct field access elimination](#struct-field-access-elimination)
   * [Equality guard to pattern matching](#equality-guard-to-pattern-matching)
+  * [Static structure reuse](#static-structure-reuse)
+  * [Simplifying guard sequences](#simplifying-guard-sequences)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -1633,6 +1635,128 @@ ___
 
   iex(2)> Order.discount(%Order{id: :s1, customer: "Marco", total: 150.0}, 0.5)
   ** (FunctionClauseError) no function clause matching in Order.discount/2                   
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Static structure reuse
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ When identical tuples or lists are used at different points within a function, they are unnecessarily recreated by Elixir. This not only makes the code more verbose but also takes up more memory space and can lead to less efficient runtime. This refactoring aims to eliminate these unnecessary recreations of identical static structures by assigning them to variables that allow these structures to be shared throughout the code.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a function ``check/1``. This function receives a two-element ``tuple`` as a parameter, where the first element is a boolean value indicating whether payment for an order has been confirmed, and the second element is a ``list`` of items that make up the order.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Order do
+    def check({paid, [:car, :house, i]}) do
+      case paid do
+        true -> [:car, :house, i]
+        false -> {paid, [:car, :house, i]}
+      end
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Order.check({true, [:car, :house, :boat]}) 
+  [:car, :house, :boat]
+
+  iex(2)> Order.check({false, [:car, :house, :boat]})
+  {false, [:car, :house, :boat]}
+  ```
+
+  Note that there is a ``tuple`` and a ``list`` being recreated in this function. When the payment is confirmed, ``check/1`` recreates and returns the ``list`` of items in the order (the second element of the ``tuple``). On the other hand, when the payment has not yet been made, ``check/1`` recreates the entire ``tuple`` received as a parameter and returns it.
+
+  As shown in the following code, we can use pattern matching to create the variables ``list`` and ``tuple`` in the ``check/1`` clause, assigning these variables to the respective structures that were previously being unnecessarily recreated in the function body.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Order do
+    def check({paid, [:car, :house, _i] = list} = tuple) do
+      case paid do
+        true -> list    # <= reuse!
+        false -> tuple  # <= reuse!
+      end
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Order.check({true, [:car, :house, :boat]}) 
+  [:car, :house, :boat]
+
+  iex(2)> Order.check({false, [:car, :house, :boat]})
+  {false, [:car, :house, :boat]}                   
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Simplifying guard sequences
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ The guard clauses in Elixir may contain redundant logical propositions. Although this does not cause behavioral problems for the code, it can make it more verbose and inefficient. This refactoring aims to simplify the guard clauses by eliminating redundancies whenever possible.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, the multi-clause function ``bar/1`` has redundant guards in both clauses. The first clause checks if a parameter is of the ``float`` type and also equals a constant of that type. The second clause checks if a parameter is of the ``list`` type and if this ``list`` has more than two values.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def bar(f) when is_float(f) and f == 81.0 do
+      {:ok, f}
+    end
+
+    def bar(l) when is_list(l) and length(l) > 2 do
+      {:ok, l}
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.bar(81.0)
+  {:ok, 81.0}
+
+  iex(2)> Foo.bar(81)         #<= integer!
+  ** (FunctionClauseError) no function clause matching in Foo.bar/1
+
+  iex(3)> Foo.bar([1,2,3,4])
+  {:ok, [1, 2, 3, 4]}
+
+  iex(4)> Foo.bar({1,2,3,4})  #<= tuple!
+  ** (FunctionClauseError) no function clause matching in Foo.bar/1
+  ```
+
+  As shown in the following code, we can simplify the first clause by using the strict equality comparison operator. The second clause can be simplified by using only the ``Kernel.length/1`` function, since it expects a parameter of the ``list`` type. If a parameter of a different type is passed to ``Kernel.length/1``, the pattern matching for that clause will not be performed.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def bar(f) when f === 81.0 do
+      {:ok, f}
+    end
+
+    def bar(l) when length(l) > 2 do
+      {:ok, l}
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.bar(81.0)
+  {:ok, 81.0}
+
+  iex(2)> Foo.bar(81)         #<= integer!
+  ** (FunctionClauseError) no function clause matching in Foo.bar/1
+
+  iex(3)> Foo.bar([1,2,3,4])
+  {:ok, [1, 2, 3, 4]}
+
+  iex(4)> Foo.bar({1,2,3,4})  #<= tuple!
+  ** (FunctionClauseError) no function clause matching in Foo.bar/1                   
   ```
 
 [▲ back to Index](#table-of-contents)
