@@ -1516,7 +1516,7 @@ ___
   iex(1)> Order.discount(%Order{id: :s1, costumer: "Lucas", total: 150.0}, 0.5) 
   %Order{id: :s1, costumer: "Lucas", total: 75.0}
 
-  iex(2)> Order.discount(%{id: :s1, costumer: "Lucas", total: 150.0}, 0.5)   #<= Used Map instead Struct!    
+  iex(2)> Order.discount(%{id: :s1, costumer: "Lucas", total: 150.0}, 0.5)   #<= Map instead Struct!    
   ** (FunctionClauseError) no function clause matching in Order.discount/2
   ```
 
@@ -1534,7 +1534,7 @@ ___
   iex(1)> Order.discount(%Order{id: :s1, costumer: "Lucas", total: 150.0}, 0.5) 
   %Order{id: :s1, costumer: "Lucas", total: 75.0}
 
-  iex(2)> Order.discount(%{id: :s1, costumer: "Lucas", total: 150.0}, 0.5)   #<= Used Map instead Struct!    
+  iex(2)> Order.discount(%{id: :s1, costumer: "Lucas", total: 150.0}, 0.5)   #<= Map instead Struct!    
   ** (FunctionClauseError) no function clause matching in Order.discount/2                     
   ```
 
