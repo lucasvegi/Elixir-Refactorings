@@ -35,6 +35,9 @@
   * [Equality guard to pattern matching](#equality-guard-to-pattern-matching)
   * [Static structure reuse](#static-structure-reuse)
   * [Simplifying guard sequences](#simplifying-guard-sequences)
+  * [Converts guards to conditionals](#converts-guards-to-conditionals)
+  * [Eliminate single branch](#eliminate-single-branch)
+  * [Simplifying nested conditional statements](#simplifying-nested-conditional-statements)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -1708,23 +1711,23 @@ ___
 
   defmodule Foo do
     def bar(f) when is_float(f) and f == 81.0 do
-      {:ok, f}
+      {:float, f}
     end
 
     def bar(l) when is_list(l) and length(l) > 2 do
-      {:ok, l}
+      {:list, l}
     end
   end
   
   #...Use examples...
   iex(1)> Foo.bar(81.0)
-  {:ok, 81.0}
+  {:float, 81.0}
 
   iex(2)> Foo.bar(81)         #<= integer!
   ** (FunctionClauseError) no function clause matching in Foo.bar/1
 
   iex(3)> Foo.bar([1,2,3,4])
-  {:ok, [1, 2, 3, 4]}
+  {:list, [1, 2, 3, 4]}
 
   iex(4)> Foo.bar({1,2,3,4})  #<= tuple!
   ** (FunctionClauseError) no function clause matching in Foo.bar/1
@@ -1737,26 +1740,222 @@ ___
 
   defmodule Foo do
     def bar(f) when f === 81.0 do
-      {:ok, f}
+      {:float, f}
     end
 
     def bar(l) when length(l) > 2 do
-      {:ok, l}
+      {:list, l}
     end
   end
   
   #...Use examples...
   iex(1)> Foo.bar(81.0)
-  {:ok, 81.0}
+  {:float, 81.0}
 
   iex(2)> Foo.bar(81)         #<= integer!
   ** (FunctionClauseError) no function clause matching in Foo.bar/1
 
   iex(3)> Foo.bar([1,2,3,4])
-  {:ok, [1, 2, 3, 4]}
+  {:list, [1, 2, 3, 4]}
 
   iex(4)> Foo.bar({1,2,3,4})  #<= tuple!
   ** (FunctionClauseError) no function clause matching in Foo.bar/1                   
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Converts guards to conditionals
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ In Elixir, we can differentiate each clause of a function by using guards. The goal of this refactoring is to replace all guards in a function with traditional conditionals, creating only one clause for the function.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a multi-clause function ``bar/1``. The first clause checks if a parameter is of the ``float`` type and also equals a constant of that type. The second clause checks if a parameter is of the ``list`` type and if this ``list`` has more than two values.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def bar(f) when f === 81.0 do
+      {:float, f}
+    end
+
+    def bar(l) when length(l) > 2 do
+      {:list, l}
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.bar(81.0)
+  {:float, 81.0}
+
+  iex(2)> Foo.bar(81)         #<= integer!
+  ** (FunctionClauseError) no function clause matching in Foo.bar/1
+
+  iex(3)> Foo.bar([1,2,3,4])
+  {:list, [1, 2, 3, 4]}
+
+  iex(4)> Foo.bar({1,2,3,4})  #<= tuple!
+  ** (FunctionClauseError) no function clause matching in Foo.bar/1
+  ```
+
+  As shown in the following code, we can replace the two guards with a ``cond`` conditional, creating only one clause for the ``bar/1`` function.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    
+    def bar(v) do
+      try do
+        cond do
+          v === 81.0 -> {:float, v}
+          length(v) > 2 -> {:list, v}
+          true -> raise FunctionClauseError
+        end
+      rescue
+        _e in ArgumentError -> raise FunctionClauseError
+      end
+    end
+
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.bar(81.0)
+  {:float, 81.0}
+
+  iex(2)> Foo.bar(81)         #<= integer!
+  ** (FunctionClauseError) no function clause matches in Foo.bar/1
+
+  iex(3)> Foo.bar([1,2,3,4])
+  {:list, [1, 2, 3, 4]}
+
+  iex(4)> Foo.bar({1,2,3,4})  #<= tuple!
+  ** (FunctionClauseError) no function clause matches in Foo.bar/1                   
+  ```
+
+  In Elixir, when an error is raised from inside the guard, it won’t be propagated, and the guard expression will just return false. An example of this occurs when a call to ``Kernel.length/1`` in a guard receives a parameter that is not a ``list``. Instead of propagating an ``ArgumentError``, the corresponding clause just won’t match. However, when the same proposition is used outside of a guard (in a conditional), an ``ArgumentError`` will be propagated.
+  
+  To keep the refactored code with the same behavior as the original, raising only a ``FunctionClauseError`` when the conditional has no branch equivalent to the desired clause, it was necessary to use the error-handling mechanism of Elixir. Note that the use of this error-handling mechanism, combined with the fact of merging multiple clauses into one, may turn this refactored code into a [Long Function][Long Function].
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Eliminate single branch
+
+* __Category:__ Traditional Refactoring*.
+
+* __Motivation:__ This refactoring aims to simplify the code by eliminating control statements that have only one possible flow.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a function ``qux/1`` with a ``case`` statement that has only one branch. When the pattern matching of this single branch does not occur, this function raises a ``CaseClauseError``.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def qux(value) do
+      case value do
+        {:ok, v1, v2} ->
+          (v1 + v1) * v2
+      end
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.qux({:ok, 2, 4})
+  16
+
+  iex(2)> Foo.qux({:error, 2, 4})
+  ** (CaseClauseError) no case clause matching: {:error, 2, 4}
+  ```
+
+  As shown in the following code, we can simplify this code by replacing the ``case`` statement with the code that would be executed by their single branch.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do 
+    def qux(value) do
+      {:ok, v1, v2} = value
+      (v1 + v1) * v2
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.qux({:ok, 2, 4}) 
+  16
+
+  iex(2)> Foo.qux({:error, 2, 4})
+  ** (MatchError) no match of right hand side value: {:error, 2, 4}                   
+  ```
+
+  Note that the only behavioral difference between the original and refactored code is that a different error is raised when the pattern matching does not occur (i.e., ``MatchError``). This could be compensated for by using the error-handling mechanism of Elixir, as shown in [Converts guards to conditionals](#converts-guards-to-conditionals).
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Simplifying nested conditional statements
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ Sometimes nested conditional statements can unnecessarily decrease the readability of the code. This refactoring aims to simplify the code by eliminating unnecessary nested conditional statements.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have the functions ``convert/2`` and ``qux/3``. The private function ``convert/2`` takes a ``list`` and a boolean value ``switch`` as parameters. If ``switch`` is true, the ```list``` is converted to a tuple; otherwise, the ``list`` is not modified. The public function ``qux/3`` takes a ``list``, a ``value``, and an ``index`` as parameters and then calls the ``convert/2`` function. If the ``list`` contains the ``value`` at the ``index``, ``qux/3`` calls the ``convert/2`` function with the second parameter set to true; otherwise, the second parameter is set to false.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    defp convert(list, switch) do
+      case switch do
+        true -> {:tuple, List.to_tuple(list)}
+        _    -> {:list, list}
+      end
+    end
+
+    def qux(list, value, index) do
+      case convert(list, case Enum.at(list, index) do
+                            ^value -> true
+                            _      -> false
+                          end) do
+        {:tuple, _} -> "Something..."
+        {:list, _}  -> "Something else..."
+      end
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.qux([1,7,3,8], 7, 0)  
+  "Something else..."
+
+  iex(2)> Foo.qux([1,7,3,8], 7, 1)
+  "Something..."
+  ```
+
+  Note that the function ``qux/3`` uses two nested ``case`` statements to perform its operations, with the innermost ``case`` statement responsible for setting the boolean value of the second parameter in the call to ``convert/2``. As shown in the following code, we can simplify this code by replacing the innermost ``case`` statement with a strict equality comparison (``===``).
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do 
+    ...
+
+    def qux(list, value, index) do
+      case convert(list, Enum.at(list, index) === value) do
+        {:tuple, _} -> "Something..."
+        {:list, _}  -> "Something else..."
+      end
+    end
+
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.qux([1,7,3,8], 7, 0)  
+  "Something else..."
+
+  iex(2)> Foo.qux([1,7,3,8], 7, 1)
+  "Something..."                 
   ```
 
 [▲ back to Index](#table-of-contents)
