@@ -2188,7 +2188,7 @@ ___
   12          #<= unchanged counter!
   ```
 
-  To maintain this same code behavior without using ``try..rescue`` error-handling mechanisms, we can turn Counter into a supervised process in a tree, as presented in [Unsupervised process][Unsupervised process]. Therefore, if a string is provided to ``bump/2``, the process will crash but will be restarted by its supervisor with the desired value of the counter.
+  To maintain this same code behavior without using ``try..rescue`` error-handling mechanisms, we can turn ``Counter`` into a supervised process in a tree, as presented in this [code][Unsupervised process]. Therefore, if a string is provided to ``bump/2``, the process will crash but will be restarted by its supervisor with their last state.
 
 [▲ back to Index](#table-of-contents)
 ___
