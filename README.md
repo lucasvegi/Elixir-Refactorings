@@ -42,6 +42,7 @@
   * [Remove dead code](#remove-dead-code)
   * [Introduce or remove a duplicate definition](#introduce-or-remove-a-duplicate-definition)
   * [Introduce overloading](#introduce-overloading)
+  * [From defensive-style programming to non-defensive style](#from-defensive-style-programming-to-non-defensive-style)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -2138,6 +2139,60 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
+### From defensive-style programming to non-defensive style
+
+* __Category:__ Elixir-specific Refactorings*.
+
+* __Motivation:__ This refactoring helps to transform defensive-style error-handling code written in Elixir into supervised processes. This non-defensive style, also known as "Let it crash style", isolates error-handling code from business rule code in a system. When a process is supervised in a tree, it doesn't need to worry about error handling because if errors occur, its respective supervisor will monitor and restart it.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a ``GenServer`` process responsible for keeping a numerical counter. Note that it uses the defensive style (``try..rescue``) in the callback responsible for the ``bump/2`` function. Therefore, if a non-numerical value is provided to this function, instead of a crash, the code will simply keep the counter in its current state.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Counter do
+    use GenServer
+    ...
+
+    def bump(value, pid_name \\ __MODULE__) do
+      GenServer.call(pid_name, {:bump, value})
+      get(pid_name)
+    end
+
+    ## Callbacks
+    ...
+
+    @impl true
+    def handle_call({:bump, value}, _from, counter) do
+      try do
+        {:reply, counter, counter + value}
+      rescue
+        _e in ArithmeticError -> {:reply, counter, counter}
+      end
+    end
+
+  end
+
+  #...Use examples...
+
+  iex(1)> Counter.start(15, C2)
+  {:ok, #PID<0.120.0>}
+
+  iex(2)> Counter.get(C2)
+  15
+
+  iex(3)> Counter.bump(-3, C2)
+  12
+
+  iex(4)> Counter.bump("Lucas", C2) 
+  12          #<= unchanged counter!
+  ```
+
+  To maintain this same code behavior without using ``try..rescue`` error-handling mechanisms, we can turn Counter into a supervised process in a tree, as presented in [Unsupervised process][Unsupervised process]. Therefore, if a string is provided to ``bump/2``, the process will crash but will be restarted by its supervisor with the desired value of the counter.
+
+[▲ back to Index](#table-of-contents)
+___
+
 ## About
 
 This catalog was proposed by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC/UFMG][ASERG].
@@ -2175,6 +2230,8 @@ Our research is also part of the initiative called __[Research with Elixir][Rese
 [Large Module]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#large-class
 [Unnecessary Macros]: https://github.com/lucasvegi/Elixir-Code-Smells#unnecessary-macros
 [Complex extractions in clauses]: https://github.com/lucasvegi/Elixir-Code-Smells#complex-extractions-in-clauses
+[Unsupervised process]: https://github.com/lucasvegi/Elixir-Code-Smells#unsupervised-process
+[Complex extractions in clauses]: https://github.com/lucasvegi/
 [Dialyzer]: https://hex.pm/packages/dialyxir
 
 [ICPC-ERA]: https://conf.researchr.org/track/icpc-2022/icpc-2022-era
