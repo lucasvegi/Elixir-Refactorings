@@ -38,6 +38,10 @@
   * [Converts guards to conditionals](#converts-guards-to-conditionals)
   * [Eliminate single branch](#eliminate-single-branch)
   * [Simplifying nested conditional statements](#simplifying-nested-conditional-statements)
+  * [Move file](#move-file)
+  * [Remove dead code](#remove-dead-code)
+  * [Introduce or remove a duplicate definition](#introduce-or-remove-a-duplicate-definition)
+  * [Introduce overloading](#introduce-overloading)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -1491,6 +1495,8 @@ ___
   # After refactoring:
 
   defmodule Order do
+    defstruct [id: nil, customer: nil, date: nil, total: nil]
+
     def discount(order, value) do
       %Order{order | total: order.total * value}
     end
@@ -1956,6 +1962,177 @@ ___
 
   iex(2)> Foo.qux([1,7,3,8], 7, 1)
   "Something..."                 
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Move file
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ Move a project file between directories, which contains code such as modules, macros, structs, etc. This refactoring can improve the organization of an Elixir project, grouping related files in the same directory, which may, for example, belong to the same architectural layer. This refactoring can also impact the updating of references made by dependents of the code present in the moved file.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Remove dead code
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ Dead code (i.e., unused code) can pollute a codebase making it longer and harder to maintain. This refactoring aims to clean the codebase by eliminating code definitions that are not being used.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a function ``bar/2`` that modifies the two values received as parameters and then returns the power of both.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def bar(v1, v2) do
+      v1 = v1 ** 2
+      v2 = v2 + 5
+      dead_code = v2 / 2  #<= can be removed!
+      {:ok, v1 ** v2}
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> c("sample.ex")  
+  warning: variable "dead_code" is unused... sample.ex:5: Foo.bar/2
+
+  iex(2)> Foo.bar(2, 1) 
+  {:ok, 4096}
+  ```
+
+  Note that when this code is compiled, Elixir's compiler itself informs the existence of unused code that could be eliminated to clean up the codebase. As shown in the following code, this refactoring eliminated the ``dead_code`` in ``bar/2`` without causing any side effects to the function's behavior.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def bar(v1, v2) do
+      v1 = v1 ** 2
+      v2 = v2 + 5
+      {:ok, v1 ** v2}
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.bar(2, 1) 
+  {:ok, 4096}                
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Introduce or remove a duplicate definition
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ When we want to test a modification in a code without losing its original definition, we can temporarily duplicate it with a new identifier. Once this new version of the code is approved, it will replace the original version and the duplication will be removed.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a function ``bar/2`` that returns the power of their parameters.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def bar(v1, v2) do
+      v3 = v1 ** v2
+      {:ok, v3}
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.bar(5, 2) 
+  {:ok, 25}
+  ```
+
+  Imagine that for some reason it is necessary to change the definition of ``v3``, but while the new version of ``v3`` is not approved, we also want to keep the original version in the codebase. The following code shows the application of this refactoring, duplicating the definition of ``v3``.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def bar(v1, v2) do
+      v3 = v1 ** v2               #<= definition to be changed!
+      v3_duplication = v1 ** v2   #<= original version!
+      {:ok, v3}
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.bar(5, 2) 
+  {:ok, 25}               
+  ```
+
+  Note that the identifier of the introduced duplicated code (``v3_duplication``) should not conflict with any other existing identifier in the code. Once the new version of the code has been implemented and approved, the duplication can be removed from the codebase by this refactoring. If the new version is disapproved, we can return to the original version by applying [Rename an identifier](#rename-an-identifier) to it.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Introduce overloading
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ Function overloading enables the creation of variations of an existing function, that is, the definition of two or more functions with identical names but different parameters. In Elixir, this can be done with functions of different arities or with multi-clause functions of the same arity. This refactoring allows for the creation of a variation of a function, enabling its use in different contexts.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a function ``discount/1`` that allows applying a 30% discount on orders that cost at least ``100.0``.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Order do
+    defstruct [date: nil, total: nil]
+
+    def discount(%Order{total: t} = s) when t >= 100.0 do
+      %Order{s | total: t * 0.7}
+    end
+
+  end
+  
+  #...Use examples...
+  iex(1)> Order.discount(%Order{total: 150.0, date: ~D[2022-11-10]}) 
+  %Order{date: ~D[2022-11-10], total: 105.0}
+
+  iex(2)> Order.discount(%Order{total: 90.0, date: ~D[2022-10-18]}) 
+  ** (FunctionClauseError) no function clause matching in Order.discount/1  
+  ```
+
+  Consider a scenario where this e-commerce wants to implement new discount rules for new situations or specific dates. This could be done by overloading the ``discount/1`` function, creating for example a new clause for it that will be applied on purchases made on Christmas day, and also a variation ``discount/2``, that could be applied for discounts on exceptional cases. The following code presents these two refactorings of the original ``discount/1`` function.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Order do
+    defstruct [date: nil, total: nil]
+
+    # new
+    def discount(%Order{date: d, total: t} = s) when d.day == 25 and d.month == 12 do
+      %Order{s | total: t * 0.1}
+    end
+
+    # original
+    def discount(%Order{total: t} = s) when t >= 100.0 do
+      %Order{s | total: t * 0.7}
+    end
+
+    # new
+    def discount(%Order{total: t} = s, value) do
+      %Order{s| total: t * value}
+    end
+
+  end
+  
+  #...Use examples...
+  iex(1)> Order.discount(%Order{total: 150.0, date: ~D[2022-12-25]}) 
+  %Order{date: ~D[2022-12-25], total: 15.0}  
+  
+  iex(2)> Order.discount(%Order{total: 150.0, date: ~D[2022-11-10]}) 
+  %Order{date: ~D[2022-11-10], total: 105.0}
+
+  iex(3)> Order.discount(%Order{total: 90.0, date: ~D[2022-10-18]}, 0.8) 
+  %Order{date: ~D[2022-10-18], total: 72.0}           
   ```
 
 [▲ back to Index](#table-of-contents)
