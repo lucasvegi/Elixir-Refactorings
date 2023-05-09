@@ -43,6 +43,12 @@
   * [Introduce or remove a duplicate definition](#introduce-or-remove-a-duplicate-definition)
   * [Introduce overloading](#introduce-overloading)
   * [From defensive-style programming to non-defensive style](#from-defensive-style-programming-to-non-defensive-style)
+  * [From meta to normal function application](#from-meta-to-normal-function-application)
+  * [Remove import attributes](#remove-import-attributes)
+  * [Introduce import](#introduce-import)
+  * [Remove unnecessary calls to length/1](#remove-unnecessary-calls-to-length1)
+  * [Add type declarations and contracts](#add-type-declarations-and-contracts)
+  * [Widen or narrow definition scope](#widen-or-narrow-definition-scope)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -1299,7 +1305,7 @@ ___
 
 * __Category:__ Elixir-specific Refactorings*.
 
-* __Motivation:__ Despite being a dynamically-typed language, Elixir offers a feature to compensate for the lack of a static type system. By using ``Typespecs``, we can specify the types of each function parameter and of the return value. Utilizing this Elixir feature not only improves documentation, but also can enhance code readability and prepare it to be analyzed for tools like [Dialyzer][Dialyzer], enabling the detection of type inconsistencies, and potential bugs. The goal of this refactoring is simply to use Typespecs in a function to promote the aforementioned benefits of using this feature.
+* __Motivation:__ Despite being a dynamically-typed language, Elixir offers a feature to compensate for the lack of a static type system. By using ``Typespecs``, we can specify the types of each function parameter and of the return value. Utilizing this Elixir feature not only improves documentation, but also can enhance code readability and prepare it to be analyzed for tools like [Dialyzer][Dialyzer], enabling the detection of type inconsistencies, and potential bugs. The goal of this refactoring is simply to use ``Typespecs`` in a function to promote the aforementioned benefits of using this feature.
 
 * __Examples:__ The following code has already been presented in another context in the refactoring [Merge expressions](#merge-expressions). Prior to the refactoring, we have a module ``Bhaskara`` composed of the function ``solve/3``, responsible for finding the roots of a quadratic equation. Note that this function should receive three real numbers as parameters and return a tuple of two elements. The first element of this tuple is always an atom, while the second element may be a String (if there are no roots) or a tuple containing the two roots of the quadratic equation.
 
@@ -2189,6 +2195,281 @@ ___
   ```
 
   To maintain this same code behavior without using ``try..rescue`` error-handling mechanisms, we can turn ``Counter`` into a supervised process in a tree, as presented in this [code][Unsupervised process]. Therefore, if a string is provided to ``bump/2``, the process will crash but will be restarted by its supervisor with their last state.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### From meta to normal function application
+
+* __Category:__ Elixir-specific Refactorings*.
+
+* __Motivation:__ The function `apply/3` provided by the Elixir Kernel allows calling any function that has its source module, name, and parameter list defined at runtime. This refactoring allows replacing the use of the `apply/3` function with direct calls to functions that have modules, names, and parameter lists defined at compile time.
+
+* __Examples:__ The following code shows an example of this refactoring.
+
+  ```elixir
+  # Before refactoring:
+
+  iex(1)> apply(Enum, :sort, [[4, 3, 2, 1]])
+  [1, 2, 3, 4]
+  ```
+
+  ```elixir
+  # After refactoring:
+
+  iex(1)> Enum.sort([4, 3, 2, 1])
+  [1, 2, 3, 4]
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Remove import attributes
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ The use of the `import` directive in a module allows calling functions defined in other modules without having to specify them directly in each call. While this can reduce the size of code, the use of `import` can also harm the readability of code, making it difficult to identify directly the source of a function being called. This refactoring allows removing the `import` directives in a module, replacing all calls to imported functions with the format `Module.function(args)`.
+
+* __Examples:__ The following code shows an example of this refactoring.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Bar do
+    def sum(v1, v2) do
+      v1 + v2
+    end
+  end
+
+  defmodule Foo do
+    import Bar  #<= to be removed!
+
+    def qux(value_1, value_2) do
+      sum(value_1, value_2)   #<= imported function!
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.qux(1, 2) 
+  3
+  ```
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Bar do
+    def sum(v1, v2) do
+      v1 + v2
+    end
+  end
+
+  defmodule Foo do
+    def qux(value_1, value_2) do
+      Bar.sum(value_1, value_2)   #<= calling with a fully-qualified name
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.qux(1, 2) 
+  3
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Introduce import
+
+* __Category:__ Traditional Refactorings.
+
+* __Motivation:__ This refactoring is the inverse of [Remove import attributes](#remove-import-attributes). Recall that Remove import attributes allows you to remove `import` directives from a module, replacing all calls to imported functions with fully-qualified name calls (`Module.function(args)`). In contrast, Introduce import focuses on replacing fully-qualified name calls of functions from other modules with calls that use only the name of the imported functions.
+
+* __Examples:__ To better understand, take a look at the example in [Remove import attributes](#remove-import-attributes) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Remove unnecessary calls to length/1
+
+* __Category:__ Elixir-specific Refactorings*.
+
+* __Motivation:__ In Elixir, lists are always linked. Therefore, the cost of each `length/1` function call is not constant but proportional to the size of the list passed as a parameter. Considering that this cost can be high, many `length/1` calls can be unnecessary, making the code inefficient. This refactoring aims to replace these unnecessary calls, improving the efficiency of the code without modifying its behavior.
+
+* __Examples:__ The following code shows an example of this refactoring. Consider a function `foo/1` that uses `length/1` in a guard clause to check if a list is empty. This `length/1` call is inefficient and unnecessary for very large lists.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Bar do
+    def foo(list) when length(list) == 0 do
+      :empty_list
+    end
+
+    def foo(list) when length(list) != 0 do
+      :non_empty_list
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Enum.to_list(1..1_000_000) |> Bar.foo() 
+  :non_empty_list
+  ```
+
+  This refactoring can replace the use of `length/1` with pattern matching, resulting in a more efficient code with the same behavior, as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Bar do
+    def foo(list) when list == [] do
+      :empty_list
+    end
+
+    def foo(list) when list != [] do
+      :non_empty_list
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Enum.to_list(1..1_000_000) |> Bar.foo() 
+  :non_empty_list
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Add type declarations and contracts
+
+* __Category:__ Elixir-specific Refactorings*.
+
+* __Motivation:__ Despite being a dynamically-typed language, Elixir offers a feature to compensate for the lack of a static type system. By using ``Typespecs``, we can specify the types of each function parameter and of the return value. Utilizing this Elixir feature not only improves documentation, but also can enhance code readability and prepare it to be analyzed for tools like [Dialyzer][Dialyzer], enabling the detection of type inconsistencies, and potential bugs. The goal of this refactoring is to use `Typespecs` to create custom data types, thereby naming recurring data structures in the codebase and increasing system readability.
+
+* __Examples:__ The following code examples illustrate this refactoring. Prior to refactoring, we have a function ``set_background/1`` that receives a tuple of three integer elements. This function performs some processing with this tuple and returns an atom. The function interface for ``set_background/1`` is defined in the module attribute ``@spec``.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+
+    @spec set_background({integer, integer, integer}) :: atom
+    def set_background(rgb) do
+      #do something...
+      :ok
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.set_background({150, 25, 89})
+  :ok
+  ```
+
+  To easier this code understanding and leverage the other aforementioned benefits, we can generate a type specification using the ``@type`` module attribute which is a default feature of Elixir.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+
+    @typedoc """
+      A tuple with three integer elements between 0..255
+    """
+    @type color :: {red :: integer, green :: integer, blue :: integer}
+
+    @spec set_background(color) :: atom
+    def set_background(rgb) do
+      #do something...
+      :ok
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.set_background({150, 25, 89})
+  :ok
+
+  #...Retrieving code documentation...
+  iex(2)> h Foo.set_background/1                           
+  @spec set_background(color()) :: atom()
+
+  iex(3)> t Foo.color   #<= type documentation!
+  @type color() :: {red :: integer(), green :: integer(), blue :: integer()}
+
+  A tuple with three integer elements between 0..255
+  ```
+
+  Note that with the use of ``@type``, we can easily check the type specification using Elixir's helper.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Widen or narrow definition scope
+
+* __Category:__ Functional Refactoring.
+
+* __Motivation:__ In Elixir, it is not possible to define nested named functions, however, it is possible to define a nested anonymous function (inside) of a named function. In this case, the anonymous function's scope is narrowed to the body of the named function where it was defined. This refactoring aims to widen or narrow a function's usage scope.
+
+* __Examples:__ The following code examples illustrate the widening of a function's scope. Prior to refactoring, the module `Foo` has the definition of the named function `bar/3`. Within this named function, we have the definition of the nested anonymous function `my_div/2`. Note that the scope of the `my_div/2` function is narrowed to the body of the `bar/3` function.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def bar(v1, v2, v3) do
+      my_div = fn
+        (_, 0) -> {:error, "invalid!"}
+        (x, y) -> {:ok, x/y}
+      end
+
+      case my_div.(v1, v2) do
+        {:error, msg} -> msg
+        {:ok, value} -> value * v3
+      end
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.bar(10, 0, 5)
+  "invalid!"
+
+  iex(2)> Foo.bar(10, 2, 5)
+  25.0
+
+  iex(3)> my_div.(10, 2)
+  warning: variable "my_div" does not exist...
+  ** (CompileError) undefined function my_div/0...
+  ```
+
+  To widen the scope of the anonymous function `my_div/2`, we can transform it into a named function defined outside of `bar/3`. In addition, we must replace all calls to the anonymous function `my_div/2` with calls to the newly named function `my_div/2`, as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def bar(v1, v2, v3) do
+      case my_div(v1, v2) do
+        {:error, msg} -> msg
+        {:ok, value} -> value * v3
+      end
+    end
+
+    # new multi-clause named function with widened scope!
+    def my_div(_, 0), do: {:error, "invalid!"}
+    def my_div(x, y), do: {:ok, x/y}
+  end
+
+  #...Use examples...
+  iex(1)> Foo.bar(10, 0, 5)
+  "invalid!"
+
+  iex(2)> Foo.bar(10, 2, 5)
+  25.0
+
+  iex(3)> Foo.my_div(10, 2)
+  {:ok, 5.0}
+
+  iex(4)> Foo.my_div(10, 0)
+  {:error, "invalid!"}
+  ```
+
+  Considering this example, to narrow the scope of `my_div/2`, we can perform the reverse refactoring, that is, `# After refactoring:` -> `# Before refactoring:`.
 
 [▲ back to Index](#table-of-contents)
 ___
