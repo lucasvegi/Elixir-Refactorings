@@ -54,6 +54,10 @@
   * [Bindings to List](#bindings-to-list)
   * [Move expression out of case](#move-expression-out-of-case)
   * [Function clauses to/from case clauses](#function-clauses-tofrom-case-clauses)
+  * [Transform a body-recursive function to a tail-recursive](#transform-a-body-recursive-function-to-a-tail-recursive)
+  * [Introduce/remove concurrency](#introduceremove-concurrency)
+  * [Add a tag to messages](#add-a-tag-to-messages)
+  * [Register a process](#register-a-process)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -2743,6 +2747,247 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
+## Transform a body-recursive function to a tail-recursive
+
+* __Category:__ Functional Refactoring*.
+
+* __Motivation:__ In Erlang and Elixir, there are two common styles for writing recursive functions: body-recursion and tail-recursion. Body-recursion allows for the recursive call to occur anywhere within the function body, while tail-recursion specifies that the recursive call must be the last operation performed before returning. To implement a tail-recursive function, an accumulating parameter is often used to store the intermediate results of the computation. When a tail-recursive function calls itself, the Erlang VM can perform a clever optimization technique known as tail-call optimization. This means that the function can continue without waiting for its recursive call to return. This optimization can enhance code parallelization and lead to more efficient code. To take advantage of the tail-call optimization provided by the Erlang VM, this refactoring aims to convert a body-recursive function into a tail-recursive one.
+
+* __Examples:__ The code examples below illustrate this refactoring. Prior to the refactoring, the `sum_list_elements/1` function uses body-recursion to sum all elements in a list.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def sum_list_elements([]), do: 0
+
+    def sum_list_elements([head | tail]) do
+      sum_list_elements(tail) + head
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.sum_list_elements([1, 2, 3, 4, 5, 6])
+  21
+  ```
+
+  Following the refactoring, `sum_list_elements/1` retains the same behavior but now uses tail-recursion to sum all elements in a list. Note that a private recursive function `do_sum_list_elements/2` was created to support this refactoring.
+  
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def sum_list_elements(list) do
+      do_sum_list_elements(list, 0)
+    end
+
+    defp do_sum_list_elements([], sum), do: sum
+
+    defp do_sum_list_elements([head | tail], sum) do
+      do_sum_list_elements(tail, sum + head)
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.sum_list_elements([1, 2, 3, 4, 5, 6])
+  21
+  ```
+
+  The following code can be used to compare the performance of the two solutions. In this code, the `sum_list_elements/1` function has illustrative names `before_ref/1` and `after_ref/1` to represent their respective body-recursive and tail-recursive versions.
+
+  ```elixir
+  defp time(func, args) do
+    t_0 = Time.utc_now()
+    func.(args)
+    Time.diff(Time.utc_now(), t_0, :millisecond)
+  end
+
+  def compare(list \\ Enum.to_list(1..1_000_000)) do
+    IO.puts("Body recursive: #{time(&before_ref/1, list)} millisecond(s)")
+    IO.puts("Tail recursive: #{time(&after_ref/1, list)} millisecond(s)")
+  end
+
+  #...Use examples...
+  iex(1)> Foo.compare()
+  Body recursive: 44 millisecond(s)
+  Tail recursive: 4 millisecond(s)
+  ```
+
+  Note that for a list with one million elements, the tail-recursive version was up to 10 times faster than the body-recursive version.
+
+[▲ back to Index](#table-of-contents)
+___
+
+## Introduce/remove concurrency
+
+* __Category:__ Elixir-Specific Refactoring*.
+
+* __Motivation:__ This refactoring involves introducing or removing concurrent processes to achieve a more optimal mapping between parallel processes and parallel activities of the problem being solved.
+
+* __Examples:__ An example of using this refactoring can be seen in removing the code smell [Code organization by process][Code organization by process]. Here, we have a code that previously used processes and message passing where a simpler function call would have sufficed. This refactoring allowed for the improvement of code quality without altering its behavior.
+
+[▲ back to Index](#table-of-contents)
+___
+
+## Add a tag to messages
+
+* __Category:__ Elixir-Specific Refactoring*.
+
+* __Motivation:__ In Elixir, processes run in an isolated manner, often concurrently with others. Communication between different processes is performed through message passing. This refactoring aims to adapt processes that communicate with each other by adding tags that identify groups of messages exchanged between them. This identification allows for different treatments of received messages based on their purpose or format.
+
+* __Examples:__ The following code examples illustrate this refactoring. Prior to the refactoring, the modules ``Receiver`` and ``Sender``, which will generate distinct processes, communicate via message exchange. More specifically, the process where ``Sender`` is located sends a message that is received by the ``Receiver`` process, which in turn simply displays the message, regardless of its format.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Receiver do
+
+    @doc """
+      Function for receiving messages from processes.
+    """
+    def run() do
+      receive do
+        msg_received -> IO.puts("Message: #{msg_received}")
+      after
+        30_000 -> IO.puts("Timeout...")
+      end
+    end
+
+    @doc """
+      Create a process to receive a message.
+      Messages are received in the run() function of Receiver.
+    """
+    def create() do
+      spawn(Receiver, :run, [])
+    end
+
+  end
+  ```
+  
+  ```elixir
+  # Before refactoring:
+
+  defmodule Sender do
+    @doc """
+      Function for sending messages between processes.
+        pid_receiver: message recipient
+        msg: messages of any type and size can be sent.
+    """
+    def send_msg(pid_receiver, msg) do
+      send(pid_receiver, msg)
+    end
+  end
+
+  #...Use examples...
+  iex(1)> pid = Receiver.create()
+  #PID<0.320.0>
+
+  iex(2)> Sender.send_msg(pid, "Hello World!")
+  Message: Hello World!
+  ```
+
+  Following the refactoring, ``Sender.send_msg/2`` has been transformed into ``Sender.send_msg/3``. Its additional parameter is responsible for receiving the `tag` that will identify the sent message. However, this parameter has a default value (`:msg`) set, so all pre-existing calls to ``Sender.send_msg/2`` will have their behavior preserved after the refactoring.
+  
+  ```elixir
+  # After refactoring:
+
+  defmodule Receiver do
+
+    @doc """
+      Function for receiving messages from processes.
+    """
+    def run() do
+      receive do
+        {:msg, msg_received} -> IO.puts("Message: #{msg_received}")
+        {:sum, {v1, v2}} -> IO.puts("Result: #{v1 + v2}")
+        {_, _} -> IO.puts("Won't match!")
+      after
+        30_000 -> IO.puts("Timeout...")
+      end
+    end
+
+    @doc """
+      Create a process to receive a message.
+      Messages are received in the run() function of Receiver.
+    """
+    def create() do
+      spawn(Receiver, :run, [])
+    end
+
+  end
+  ```
+  
+  ```elixir
+  # After refactoring:
+
+  defmodule Sender do
+    @doc """
+    Function for sending messages between processes.
+      pid_receiver: message recipient
+      msg: messages of any type and size can be sent.
+      tag: used by receiver to decide what to do
+              when a message arrives.
+              Default is the atom :msg
+    """
+    def send_msg(pid_receiver, msg, tag \\ :msg) do
+      send(pid_receiver, {tag, msg})
+    end
+  end
+
+  #...Use examples...
+  iex(1)> pid = Receiver.create()
+  #PID<0.320.0>
+
+  iex(2)> Sender.send_msg(pid, "Hello World!")
+  Message: Hello World!
+  
+  iex(3)> Sender.send_msg(pid, {1,2}, :sum)
+  Result: 3
+
+  iex(4)> Sender.send_msg(pid, msg, :test)
+  Won't match!
+  ```
+
+  Note that all messages sent between these processes have the format of a tuple ``{tag, msg}`` after the refactoring. In addition, the function ``Receiver.run/0`` now uses pattern matching to provide different treatments for messages identified with different tags. The programmer has the freedom to adapt ``Receiver.run/0`` by configuring all message identification tags relevant to their system.
+
+[▲ back to Index](#table-of-contents)
+___
+
+## Register a process
+
+* __Category:__ Elixir-Specific Refactoring*.
+
+* __Motivation:__ In Elixir, processes run in an isolated manner, often concurrently with others. Communication between different processes is performed through message passing. This refactoring involves assigning a user-defined name to a process ID and using that user-defined name instead of the process ID in message passing. Any process in an Elixir system can communicate with a registered process even without knowing its ID.
+
+* __Examples:__ The following code examples illustrate this refactoring. The modules ``Receiver`` and ``Sender`` used here are defined in the examples of [Add a tag to messages](#add-a-tag-to-messages). Prior to the refactoring, for a process to send a message specifically to the process of the ``Receiver`` module, it would need to know its identifier (`#PID<0.320.0>`).
+
+  ```elixir
+  # Before refactoring:
+
+  iex(1)> pid = Receiver.create()
+  #PID<0.320.0>
+
+  iex(2)> Sender.send_msg(pid, "Hello World!")
+  Message: Hello World!
+  ```
+
+  Following the refactoring, the process with the identifier `#PID<0.320.0>` was registered with the user-defined name `:receiver`. This enables more readable code and allows any other process in the system to communicate with this registered process using only its name.
+  
+  ```elixir
+  # After refactoring:
+
+  iex(1)> pid = Receiver.create()
+  #PID<0.320.0>
+
+  iex(2)> Process.register(pid, :receiver)
+
+  iex(3)> Sender.send_msg(:receiver, "Hello World!")
+  Message: Hello World!
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
 ## About
 
 This catalog was proposed by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC/UFMG][ASERG].
@@ -2782,6 +3027,7 @@ Our research is also part of the initiative called __[Research with Elixir][Rese
 [Complex extractions in clauses]: https://github.com/lucasvegi/Elixir-Code-Smells#complex-extractions-in-clauses
 [Unsupervised process]: https://github.com/lucasvegi/Elixir-Code-Smells#unsupervised-process
 [Complex extractions in clauses]: https://github.com/lucasvegi/
+[Code organization by process]: https://github.com/lucasvegi/Elixir-Code-Smells#code-organization-by-process
 [Dialyzer]: https://hex.pm/packages/dialyxir
 
 [ICPC-ERA]: https://conf.researchr.org/track/icpc-2022/icpc-2022-era
