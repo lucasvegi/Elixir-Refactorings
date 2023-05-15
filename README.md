@@ -847,7 +847,7 @@ ___
 
 ### Behaviour extraction
 
-* __Category:__ Traditional Refactorings.
+* __Category:__ Traditional Refactorings*.
 
 * __Motivation:__ This refactoring is similar to Extract Interface, proposed by Fowler and Beck for object-oriented languages. In Elixir, a ``behaviour`` serves as an interface, which is a contract that a module can fulfill by implementing functions in a guided way according to the formats of parameters and return types defined in the contract. A ``behaviour`` is an abstraction that defines only the functionality to be implemented, but not how that functionality is implemented. When we find a function that can be repeated in different modules, but performing special roles in each of them, it can be a good idea to abstract this function by extracting it to a ``behaviour``, standardizing a contract to be followed by all modules that implement or may implement it in the future.
 
@@ -963,7 +963,7 @@ ___
 
 ### Behaviour inlining
 
-* __Category:__ Traditional Refactorings.
+* __Category:__ Traditional Refactorings*.
 
 * __Motivation:__ This refactoring is the inverse of [Behaviour extraction](#behaviour-extraction). Remembering, behaviour extraction aims to define a callback to compose a standardized interface for a function in a module that acts as a ``behaviour definition`` and move the existing version of that function to another module that follows this standardization, implementing the callback (``behaviour instance``). In contrast, Behaviour inlining aims to eliminate the implementations of callbacks in a ``behaviour instance``.
 
