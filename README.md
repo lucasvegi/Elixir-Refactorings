@@ -1,22 +1,16 @@
-# [Catalog of Elixir-specific Refactorings][Elixir Refactorings]
+# [Catalog of Elixir Refactorings][Elixir Refactorings]
 
 ## Table of Contents
 
 * __[Introduction](#introduction)__
-* __[Elixir Refactorings](#elixir-refactorings)__
+* __[Traditional Refactorings](#traditional-refactorings)__
   * [Rename an identifier](#rename-an-identifier)
   * [Moving a definition](#moving-a-definition)
-  * [Generalise a function definition](#generalise-a-function-definition)
   * [Add or remove a parameter](#add-or-remove-a-parameter)
   * [Grouping parameters in tuple](#grouping-parameters-in-tuple)
-  * [Introduce pattern matching over a parameter](#introduce-pattern-matching-over-a-parameter)
   * [Reorder parameter](#reorder-parameter)
   * [Extract function](#extract-function)
-  * [Turning anonymous into local functions](#turning-anonymous-into-local-functions)
-  * [Merging multiple definitions](#merging-multiple-definitions)
-  * [Splitting a definition](#splitting-a-definition)
   * [Inline function](#inline-function)
-  * [Inline macro substitution](#inline-macro-substitution)
   * [Folding against a function definition](#folding-against-a-function-definition)
   * [Extract constant](#extract-constant)
   * [Temporary variable elimination](#temporary-variable-elimination)
@@ -24,11 +18,24 @@
   * [Splitting a large module](#splitting-a-large-module)
   * [Behaviour extraction](#behaviour-extraction)
   * [Behaviour inlining](#behaviour-inlining)
-  * [Generate function specification](#generate-function-specification)
+  * [Eliminate single branch](#eliminate-single-branch)
+  * [Simplifying nested conditional statements](#simplifying-nested-conditional-statements)
+  * [Move file](#move-file)
+  * [Remove dead code](#remove-dead-code)
+  * [Introduce or remove a duplicate definition](#introduce-or-remove-a-duplicate-definition)
+  * [Introduce overloading](#introduce-overloading)
+  * [Remove import attributes](#remove-import-attributes)
+  * [Introduce import](#introduce-import)
+  * [Group Case Branches](#group-case-branches)
+  * [Move expression out of case](#move-expression-out-of-case)
+* __[Functional Refactorings](#functional-refactorings)__
+  * [Generalise a function definition](#generalise-a-function-definition)
+  * [Introduce pattern matching over a parameter](#introduce-pattern-matching-over-a-parameter)
+  * [Turning anonymous into local functions](#turning-anonymous-into-local-functions)
+  * [Merging multiple definitions](#merging-multiple-definitions)
+  * [Splitting a definition](#splitting-a-definition)
+  * [Inline macro substitution](#inline-macro-substitution)
   * [Transforming list appends and subtracts](#transforming-list-appends-and-subtracts)
-  * [Transform to list comprehension](#transform-to-list-comprehension)
-  * [Nested list functions to comprehension](#nested-list-functions-to-comprehension)
-  * [List comprehension simplifications](#list-comprehension-simplifications)
   * [From tuple to struct](#from-tuple-to-struct)
   * [Struct guard to matching](#struct-guard-to-matching)
   * [Struct field access elimination](#struct-field-access-elimination)
@@ -36,25 +43,20 @@
   * [Static structure reuse](#static-structure-reuse)
   * [Simplifying guard sequences](#simplifying-guard-sequences)
   * [Converts guards to conditionals](#converts-guards-to-conditionals)
-  * [Eliminate single branch](#eliminate-single-branch)
-  * [Simplifying nested conditional statements](#simplifying-nested-conditional-statements)
-  * [Move file](#move-file)
-  * [Remove dead code](#remove-dead-code)
-  * [Introduce or remove a duplicate definition](#introduce-or-remove-a-duplicate-definition)
-  * [Introduce overloading](#introduce-overloading)
-  * [From defensive-style programming to non-defensive style](#from-defensive-style-programming-to-non-defensive-style)
-  * [From meta to normal function application](#from-meta-to-normal-function-application)
-  * [Remove import attributes](#remove-import-attributes)
-  * [Introduce import](#introduce-import)
-  * [Remove unnecessary calls to length/1](#remove-unnecessary-calls-to-length1)
-  * [Add type declarations and contracts](#add-type-declarations-and-contracts)
   * [Widen or narrow definition scope](#widen-or-narrow-definition-scope)
-  * [Group Case Branches](#group-case-branches)
   * [Introduce Enum.map/2](#introduce-enummap2)
   * [Bindings to List](#bindings-to-list)
-  * [Move expression out of case](#move-expression-out-of-case)
   * [Function clauses to/from case clauses](#function-clauses-tofrom-case-clauses)
   * [Transform a body-recursive function to a tail-recursive](#transform-a-body-recursive-function-to-a-tail-recursive)
+* __[Elixir-Specific Refactorings](#elixir-specific-refactorings)__
+  * [Generate function specification](#generate-function-specification)
+  * [Transform to list comprehension](#transform-to-list-comprehension)
+  * [Nested list functions to comprehension](#nested-list-functions-to-comprehension)
+  * [List comprehension simplifications](#list-comprehension-simplifications)
+  * [From defensive-style programming to non-defensive style](#from-defensive-style-programming-to-non-defensive-style)
+  * [From meta to normal function application](#from-meta-to-normal-function-application)
+  * [Remove unnecessary calls to length/1](#remove-unnecessary-calls-to-length1)
+  * [Add type declarations and contracts](#add-type-declarations-and-contracts)
   * [Introduce/remove concurrency](#introduceremove-concurrency)
   * [Add a tag to messages](#add-a-tag-to-messages)
   * [Register a process](#register-a-process)
@@ -63,11 +65,9 @@
 
 ## Introduction
 
-[Elixir][Elixir] is a functional programming language whose popularity is rising in the industry <sup>[link][ElixirInProduction]</sup>. However, there are few works in the scientific literature focused on studying the internal quality of systems implemented in this language.
+[Elixir][Elixir] is a functional programming language whose popularity is on the rise in the industry <sup>[link][ElixirInProduction]</sup>. As no known studies have explored refactoring strategies for code implemented with this language, we reviewed scientific literature seeking refactoring strategies in other functional languages or languages that inspired the creation of Elixir (e.g., Ruby). The found refactorings were analyzed, filtering only those directly compatible or that could be adapted for Elixir code.
 
-... TODO ...
-
-This catalog of Elixir-specific refactorings is presented below. Each refactoring is documented using the following structure:
+As a result of this investigation, we have proposed a catalog of 54 refactorings for Elixir systems. These refactorings are categorized into three different groups ([traditional](#traditional-refactorings), [functional](#functional-refactorings), and [Elixir-specific](#elixir-specific-refactorings)), according to the programming resources required in code transformations. This catalog of Elixir refactorings is presented below. Each refactoring is documented using the following structure:
 
 * __Name:__ Unique identifier of the refactoring. This name is important to facilitate communication between developers;
 * __Category:__ Scope of refactoring in relation to its application coverage;
@@ -84,11 +84,13 @@ Please feel free to make pull requests and suggestions ([Issues][Issues] tab). W
 
 [▲ back to Index](#table-of-contents)
 
-## Elixir Refactorings
+## Traditional Refactorings
+
+Traditional refactorings are those mainly based on Fowler's catalog or that use programming resources independent of languages or paradigms. In this section, 24 different refactorings classified as traditional are explained and exemplified:
 
 ### Rename an identifier
 
-* __Category:__ Traditional Refactoring.
+* __Category:__ Traditional Refactorings.
 
 * __Motivation:__ It's important to keep in mind that although giving good names to things may not be a simple task, good names for code structures are essential to facilitate maintenance activities promoted by humans. When the name of an identifier does not clearly convey its purpose, it should be renamed to improve the code's readability, thus avoiding a developer from wasting too much time trying to understand code developed by someone else or even developed by themselves a long time ago. In Elixir, code identifiers can be ``functions``, ``modules``, ``macros``, ``variables``, ``map/struct fields``, registered processes (e.g. ``GenServer``), ``protocols``, ``behaviours callbacks``, ``module aliases``, ``module attributes``, ``function parameters``, etc.
 
@@ -222,78 +224,6 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Generalise a function definition
-
-* __Category:__ Functional Refactorings.
-
-* __Motivation:__ This refactoring helps to eliminate the [Duplicated Code][Duplicated Code] code smell. In any programming language, this code smell can make the codebase harder to maintain due to restrictions on code reuse. When different functions have equivalent expression structures, that structure should be generalized into a new function, which will later be called in the body of the duplicated functions, replacing their original codes. After that refactoring, the programmer only needs to worry about maintaining these expressions in one place (generic function). The support for ``high-order functions`` in functional programming languages enhances the potential for generalizing provided by this refactoring.
-
-* __Examples:__ In Elixir, as well as in other functional languages such as Erlang and Haskell, functions are considered as first-class citizens. This means that functions can be assigned to variables, allowing the definition of ``higher-order functions``. Higher-order functions are those that take one or more functions as arguments or return a function as a result. The following code illustrates this refactoring using a ``high-order function``. Before the refactoring, we have two functions in the ``Gen`` module. The ``foo/1`` function takes a list as an argument and transforms it in two steps. First, it squares each of its elements and then multiplies each element by 3, returning a new list. The ``bar/1`` function operates similarly, receiving a list as an argument and also transforming it in two steps. First, it doubles the value of each element in the list and then returns a list containing only the elements divisible by 4. Although these two functions transform lists in different ways, they have duplicated structures.
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule Gen do
-    def foo(list) do
-      list_comprehension = for x <- list, do: x * x
-
-      list_comprehension
-      |> Enum.map(&(&1 * 3))
-    end
-
-    def bar(list) do
-      list_comprehension = for x <- list, do: x + x
-
-      list_comprehension
-      |> Enum.filter(&(rem(&1, 4) == 0))
-    end
-  end
-
-  #...Use example...
-  iex(1)> Gen.foo([1, 2, 3])  
-  [3, 12, 27]
-
-  iex(2)> Gen.bar([2, 3, 4])
-  [4, 8]
-  ```
-
-  We want to generalize the functions ``foo/1`` and ``bar/1``. To do so, we must create a new function ``generic/4`` and replace the bodies of ``foo/1`` and ``bar/1`` with calls to ``generic/4``. Note that ``generic/4`` is a *__high-order function__*, since its last three arguments are functions that are called only within its body. Due to the use of high-order functions in this refactoring, we were able to create a smaller and easier-to-maintain new function than would be if we did not use this functional programming feature.
-
-  ```elixir
-  # After refactoring:
-
-  defmodule Gen do
-    def generic(list, generator_op, trans_op, trans_args) do
-      list_comprehension = for x <- list, do: generator_op.(x,x)
-
-      list_comprehension
-      |> trans_op.(trans_args)
-    end
-    
-    def foo(list) do
-      # Body replaced
-      generic(list, &Kernel.*/2, &Enum.map/2, &(&1 * 3))
-    end
-
-    def bar(list) do
-      # Body replaced
-      generic(list, &Kernel.+/2, &Enum.filter/2, &(rem(&1, 4) == 0))
-    end
-  end
-
-  #...Use example...
-  iex(1)> Gen.foo([1, 2, 3])  
-  [3, 12, 27]
-
-  iex(2)> Gen.bar([2, 3, 4])
-  [4, 8]
-  ```
-
-  This refactoring preserved the behaviors of ``foo/1`` and ``bar/1``, without the need to modify their calls. In addition, we eliminated the duplicated code, allowing the developer to focus solely on maintaining the generic function in the ``Gen`` module. Finally, if there is a need to create a new function for transforming lists in two steps, we can possibly reuse the code from ``generic/4`` without creating new duplications.
-
-[▲ back to Index](#table-of-contents)
-___
-
 ### Add or remove a parameter
 
 * __Category:__ Traditional Refactorings.
@@ -377,51 +307,6 @@ ___
   The function ``rand/1`` performs pattern matching with the value of its single parameter. This, in addition to allowing the extraction of the values that make up the ``tuple``, allows for validating whether the format of the parameter received in the call is really that of the ``tuple`` of the expected length. Also, note that this refactoring updates all function callers to the new parameter list.
   
   __Important:__ Although this refactoring has grouped parameters using ``tuples``, we can find in different functions identical groups of parameters that could be grouped (i.e., Data Clumps). In that case, is better to create a ``struct`` to group these parameters and reuse this ``struct`` to refactor all functions where this group of parameters occurs.
-
-[▲ back to Index](#table-of-contents)
-___
-
-### Introduce pattern matching over a parameter
-
-* __Category:__ Functional Refactorings.
-
-* __Motivation:__ Some functions have different branches that depend on the values passed to one or more parameters at call time to define the flow of execution. When these functions use classic conditional structures to implement these branches (e.g., ``if``, ``unless``, ``cond``, ``case``), they can get large bodies, becoming [Long Functions][Long Function], thus harming the maintainability of the code. This refactoring seeks to replace, when appropriate, these classic conditional structures that control the branches defined by parameter values, with pattern-matching features and multi-clause functions from functional languages such as Elixir, Erlang, and Haskell.
-
-* __Examples:__ The following code presents the ``fibonacci/1`` function. This recursive function has three different branches that are defined by the value of its single parameter, two for its base cases and one for its recursive case. The control flow for each of these branches is done by a classic conditional structure (``case``).
-
-  ```elixir
-  # Before refactoring:
-
-  def fibonacci(n) when is_integer(n) do
-    case n do
-      0 -> 0
-      1 -> 1
-      _ -> fibonacci(n-1) + fibonacci(n-2)
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.fibonacci(8) 
-  21
-  ```
-
-  We want to replace the classic ``case`` conditional by using pattern matching on the function parameter. This will turn this function into a multi-clause function, assigning each branch to a clause. Note that in addition to reducing the size of the function body by distributing the branches across the clauses, it is not necessary to make any changes to the ``fibonacci/1`` callers, since their behavior has been preserved.
-
-  ```elixir
-  # After refactoring:
-
-  def fibonacci(0), do: 0
-  def fibonacci(1), do: 1
-  def fibonacci(n) when is_integer(n) do
-    fibonacci(n-1) + fibonacci(n-2)
-  end
-
-  #...Use examples...
-  iex(1)> Foo.fibonacci(8) 
-  21
-  ```
-
-  __Important:__ Although ``fibonacci/1`` is not a [Long Functions][Long Function] and originally has simple expressions in each of its branches, it serves to illustrate the purpose of this refactoring. Try to imagine a scenario where a function has many different branches, each of which is made up of several lines of code. This would indeed be an ideal scenario to apply the proposed refactoring.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -523,173 +408,6 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Turning anonymous into local functions
-
-* __Category:__ Functional Refactorings.
-
-* __Motivation:__ In Elixir, as well as in other functional languages like Erlang and Haskell, functions are considered as first-class citizens, which means that they can be assigned to variables. This enables the creation of anonymous functions, also called lambda functions, that can be assigned to variables and called from them. Although anonymous functions are very useful in many situations, they have less potential for reuse than local functions and cannot, for example, be exported to other modules. When we encounter the same anonymous function being defined in different points of the codebase ([Duplicated Code][Duplicated Code]), these anonymous functions should be transformed into a local function, and the locations where the anonymous functions were originally implemented should be updated to use the new local function. In functional languages, this refactoring is also referred to as lambda lifting and is a specific instance of [Extract Function](#extract-function). With this refactoring, we can reduce occurrences of duplicated code, enhancing code reuse potential.
-
-* __Examples:__ The following code illustrates this refactoring. Before the refactoring, we have two functions in the ``Lambda`` module. The ``foo/1`` function takes a list as an argument and doubles the value of each element, returning a new list. The ``bar/1`` function operates similarly, receiving a list as an argument and also doubles the value of each three elements, then returns a list. Note that both local functions ``foo/1`` and ``bar/1`` internally define the same anonymous function ``fn x -> x * 2 end`` for doubling the desired list values.
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule Lambda do
-    def foo(list) do
-      Enum.map(list, fn x -> x * 2 end)
-    end
-
-    def bar(list) do
-      Enum.map_every(list, 3, fn x -> x * 2 end)
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Lambda.foo([1, 2, 3])
-  [2, 4, 6]
-
-  iex(2)> Lambda.bar([3, 4, 5, 6, 7, 8, 9])
-  [6, 4, 5, 12, 7, 8, 18]
-  ```
-
-  We want to avoid the duplicated implementation of anonymous functions. To achieve this, we will create a new local function ``double/1``, responsible for performing the same operation previously performed by the duplicated anonymous functions. In addition, the Elixir capture operator (``&``) will be used in the places of ``foo/1`` and ``bar/1`` which originally implement anonymous functions, to replace their use with the new local function ``double/1``.
-
-  ```elixir
-  # After refactoring:
-
-  defmodule Lambda do
-    def double(x) do  #<- lambda lifted to a local function!
-      x * 2
-    end
-
-    def foo(list) do
-      Enum.map(list, &double/1)
-    end
-
-    def bar(list) do
-      Enum.map_every(list, 3, &double/1)
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Lambda.foo([1, 2, 3])
-  [2, 4, 6]
-
-  iex(2)> Lambda.bar([3, 4, 5, 6, 7, 8, 9])
-  [6, 4, 5, 12, 7, 8, 18]
-  ```
-
-  Note that although in this example the new local function ``double/1``, defined to replace the duplicated anonymous functions, was only used in the ``Lambda`` module, nothing prevents it from being reused in other parts of the codebase, as ``double/1`` can be imported by any other module.
-
-[▲ back to Index](#table-of-contents)
-___
-
-### Merging multiple definitions
-
-* __Category:__ Functional Refactorings.
-
-* __Motivation:__ This refactoring is also an option for removing [Duplicated Code][Duplicated Code] and can optimize a codebase by sharing that code in a single location, avoiding multiple traversals over the same data structure. There are situations where a codebase may have distinct functions that are complementary. Because they are complementary, these functions may have identical code snippets. When identified, these functions should be merged into a new function that will simultaneously perform the processing done by the original functions separately. The new function created by this refactoring will always return a tuple, where each original return provided by the merged functions will be contained in different elements of the tuple returned by the new function. In functional languages, this refactoring is also referred to as ``tupling``.
-
-* __Examples:__ The following code illustrates this refactoring. Before the refactoring, we have two functions in the ``MyList`` module. The ``take/2`` function takes an integer value ``n`` and a list as parameters, returning a new list composed of the first ``n`` elements of the original list. The ``drop/2`` function also takes an integer value ``n`` and a list as parameters, but ignores the first ``n`` elements of the original list, returning a new list composed of the remaining elements. Note that although ``take/2`` and ``drop/2`` return different values, they are complementary multi-clause functions and therefore have many nearly identical code snippets.
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule MyList do
-    def take(0, _), do: []
-    def take(_, []), do: []
-    def take(n, [h | t]) when n > 0 do
-      [h | take(n-1, t)]
-    end
-    def take(_, _), do: :error_take_negative
-
-    def drop(0, list), do: list
-    def drop(_, []), do: []
-    def drop(n, [h | t]) when n > 0 do
-      drop(n-1, t)
-    end
-    def drop(_, _), do: :error_drop_negative
-  end
-
-  #...Use examples...
-  iex(1)> list = [1, 2, 3, 4, 5 , 6]
-  
-  iex(2)> MyList.take(2, list)
-  [1, 2]
-
-  iex(3)> MyList.drop(2, list) 
-  [3, 4, 5, 6]
-  ```
-
-  If we analyze the examples of using the code above, we can clearly see how these functions are complementary. Both received the same list as a parameter and by joining the lists returned by them, we will have the same elements of the original list, in other words, it is as if we had split the original list after the second element and ignored one of the two sub-lists in each of the functions.
-  
-  Thinking about this, we can merge these two complementary functions into a new function called ``split_at/2``. This function will remove duplicate expressions by introducing code sharing. In addition, it will return a tuple composed of two elements. The first element will contain the value that would originally be returned by ``take/2`` and the second element will contain the value that would be returned by ``drop/2``.
-
-  ```elixir
-  # After refactoring:
-
-  defmodule MyList do
-    def take(0, _), do: []        #<- can be deleted in the future!
-    def take(_, []), do: []
-    def take(n, [h | t]) when n > 0 do
-      [h | take(n-1, t)]
-    end
-    def take(_, _), do: :error_take_negative
-
-    def drop(0, list), do: list   #<- can be deleted in the future!
-    def drop(_, []), do: []
-    def drop(n, [h | t]) when n > 0 do
-      drop(n-1, t)
-    end
-    def drop(_, _), do: :error_drop_negative
-
-    # Merging take and drop!
-    def split_at(0, list), do: {[], list}
-    def split_at(_, []), do: {[], []}
-    def split_at(n, [h | t]) when n > 0 do
-      {ts, zs} = split_at(n-1, t)
-      {[h | ts], zs}
-    end
-    def split_at(_, _), do: {:error_take_negative, :error_drop_negative}
-  end
-
-  #...Use examples...
-  iex(1)> list = [1, 2, 3, 4, 5 , 6]
-  
-  iex(2)> MyList.split_at(2, list)
-  {[1, 2], [3, 4, 5, 6]}
-  ```
-
-  In the refactored code above, we kept the functions ``take/2`` and ``drop/2`` in the ``MyList`` module just so the reader could more easily compare how this merge allowed code sharing. They were not modified. From a practical point of view, the calls to ``take/2`` and ``drop/2`` can be replaced by calls to ``split_at/2``, with their respective returns being extracted via pattern matching, as in the example below:
-
-  ```elixir
-  iex(1)> {take, drop} = MyList.split_at(2, [1,2,3,4,5,6])
-
-  iex(2)> take
-  [1, 2]
-
-  iex(3)> drop
-  [3, 4, 5, 6]
-  ```
-
-  The functions ``take/2`` and ``drop/2`` can be deleted from ``MyList`` once all their calls have been replaced by calls to ``split_at/2``.
-
-  These examples are based on Haskell code written in two papers. Source: [[1]](https://dl.acm.org/doi/10.1145/1706356.1706378), [[2]](https://www.cs.kent.ac.uk/pubs/2010/3009/index.html).
-
-[▲ back to Index](#table-of-contents)
-___
-
-### Splitting a definition
-
-* __Category:__ Functional Refactorings.
-
-* __Motivation:__ This refactoring is the inverse of [Merging multiple definitions](#merging-multiple-definitions). While merge multiple definitions aims to group recursive functions into a single recursive function that returns a tuple, splitting a definition aims to separate a recursive function by creating new recursive functions, each of them responsible for individually generating a respective element originally contained in a tuple.
-
-* __Examples:__ Take a look at the example in [Merging multiple definitions](#merging-multiple-definitions) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
-
-[▲ back to Index](#table-of-contents)
-___
-
 ### Inline function
 
 * __Category:__ Traditional Refactoring.
@@ -725,60 +443,6 @@ ___
   ```
 
   This refactoring preserves the behavior of the function and will make it easier for the programmer to debug the code.
-
-[▲ back to Index](#table-of-contents)
-___
-
-### Inline macro substitution
-
-* __Category:__ Functional Refactorings.
-
-* __Motivation:__ ``Macros`` are powerful meta-programming mechanisms that can be used in Elixir, as well as other functional languages like Erlang and Clojure, to extend the language. However, when a macro is implemented to solve problems that could be solved by functions or other pre-existing language structures, the code becomes unnecessarily more complex and less readable. Therefore, when identifying unnecessary macros that have been implemented, we can replace all instances of these macros with the code defined in their bodies. Some code compensations will be necessary to ensure that they continue to perform properly after refactoring. This refactoring is a specialization of the [Inline function](#inline-function) and can be used to remove the code smell [Unnecessary Macros][Unnecessary Macros].
-
-* __Examples:__ The following code illustrates this refactoring. Before the refactoring, we have a macro ``sum_macro/2`` defined in the ``MyMacro`` module. This macro is used by the ``bar/2`` function in the ``Foo`` module, unnecessarily complicating the code's readability.
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule MyMacro do
-    defmacro sum_macro(v1, v2) do
-      quote do
-        unquote(v1) + unquote(v2)
-      end
-    end
-  end
-  ```
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule Foo do
-    def bar(v1, v2) do
-      require MyMacro
-      MyMacro.sum_macro(v1, v2)
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.bar(2, 3)            
-  5
-  ```
-
-  To eliminate the unnecessary macro ``MyMacro.sum_macro/2``, we will replace all its calls with its body, making some code adjustments. Then, we can delete ``MyMacro.sum_macro/2`` since it will no longer be used.
-
-  ```elixir
-  # After refactoring:
-
-  defmodule Foo do
-    def bar(v1, v2) do
-      v1 + v2   #<- inlined macro!
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.bar(2, 3)            
-  5
-  ```
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -1310,71 +974,823 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Generate function specification
+### Eliminate single branch
 
-* __Category:__ Elixir-specific Refactorings*.
+* __Category:__ Traditional Refactoring*.
 
-* __Motivation:__ Despite being a dynamically-typed language, Elixir offers a feature to compensate for the lack of a static type system. By using ``Typespecs``, we can specify the types of each function parameter and of the return value. Utilizing this Elixir feature not only improves documentation, but also can enhance code readability and prepare it to be analyzed for tools like [Dialyzer][Dialyzer], enabling the detection of type inconsistencies, and potential bugs. The goal of this refactoring is simply to use ``Typespecs`` in a function to promote the aforementioned benefits of using this feature.
+* __Motivation:__ This refactoring aims to simplify the code by eliminating control statements that have only one possible flow.
 
-* __Examples:__ The following code has already been presented in another context in the refactoring [Merge expressions](#merge-expressions). Prior to the refactoring, we have a module ``Bhaskara`` composed of the function ``solve/3``, responsible for finding the roots of a quadratic equation. Note that this function should receive three real numbers as parameters and return a tuple of two elements. The first element of this tuple is always an atom, while the second element may be a String (if there are no roots) or a tuple containing the two roots of the quadratic equation.
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a function ``qux/1`` with a ``case`` statement that has only one branch. When the pattern matching of this single branch does not occur, this function raises a ``CaseClauseError``.
 
   ```elixir
   # Before refactoring:
 
-  defmodule Bhaskara do
-    
-    def solve(a, b, c) do
-      delta = (b*b - 4*a*c)
-
-      if delta < 0 do
-        {:error, "No real roots"}
-      else
-        x1 = (-b + delta ** 0.5) / (2*a)
-        x2 = (-b - delta ** 0.5) / (2*a)
-        {:ok, {x1, x2}}
+  defmodule Foo do
+    def qux(value) do
+      case value do
+        {:ok, v1, v2} ->
+          (v1 + v1) * v2
       end
     end
-
   end
-
+  
   #...Use examples...
-  iex(1)> Bhaskara.solve(1, 3, -4) 
-  {:ok, {1.0, -4.0}}
+  iex(1)> Foo.qux({:ok, 2, 4})
+  16
 
-  iex(2)> Bhaskara.solve(1, 2, 3)
-  {:error, "No real roots"}
+  iex(2)> Foo.qux({:error, 2, 4})
+  ** (CaseClauseError) no case clause matching: {:error, 2, 4}
   ```
 
-  To easier this code understanding and leverage the other aforementioned benefits, we can generate a function specification using the ``@spec`` module attribute which is a default feature of Elixir. This module attribute should be placed immediately before the function definition, following the pattern ``@spec function_name(arg_type, arg_type...) :: return_type``.
+  As shown in the following code, we can simplify this code by replacing the ``case`` statement with the code that would be executed by their single branch.
 
   ```elixir
   # After refactoring:
 
-  defmodule Bhaskara do
-    
-    @spec solve(number, number, number) :: {atom, String.t() | {number, number}}
-    def solve(a, b, c) do
-      delta = (b*b - 4*a*c)
+  defmodule Foo do 
+    def qux(value) do
+      {:ok, v1, v2} = value
+      (v1 + v1) * v2
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.qux({:ok, 2, 4}) 
+  16
 
-      if delta < 0 do
-        {:error, "No real roots"}
-      else
-        x1 = (-b + delta ** 0.5) / (2*a)
-        x2 = (-b - delta ** 0.5) / (2*a)
-        {:ok, {x1, x2}}
+  iex(2)> Foo.qux({:error, 2, 4})
+  ** (MatchError) no match of right hand side value: {:error, 2, 4}                   
+  ```
+
+  Note that the only behavioral difference between the original and refactored code is that a different error is raised when the pattern matching does not occur (i.e., ``MatchError``). This could be compensated for by using the error-handling mechanism of Elixir, as shown in [Converts guards to conditionals](#converts-guards-to-conditionals).
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Simplifying nested conditional statements
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ Sometimes nested conditional statements can unnecessarily decrease the readability of the code. This refactoring aims to simplify the code by eliminating unnecessary nested conditional statements.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have the functions ``convert/2`` and ``qux/3``. The private function ``convert/2`` takes a ``list`` and a boolean value ``switch`` as parameters. If ``switch`` is true, the ```list``` is converted to a tuple; otherwise, the ``list`` is not modified. The public function ``qux/3`` takes a ``list``, a ``value``, and an ``index`` as parameters and then calls the ``convert/2`` function. If the ``list`` contains the ``value`` at the ``index``, ``qux/3`` calls the ``convert/2`` function with the second parameter set to true; otherwise, the second parameter is set to false.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    defp convert(list, switch) do
+      case switch do
+        true -> {:tuple, List.to_tuple(list)}
+        _    -> {:list, list}
+      end
+    end
+
+    def qux(list, value, index) do
+      case convert(list, case Enum.at(list, index) do
+                            ^value -> true
+                            _      -> false
+                          end) do
+        {:tuple, _} -> "Something..."
+        {:list, _}  -> "Something else..."
+      end
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.qux([1,7,3,8], 7, 0)  
+  "Something else..."
+
+  iex(2)> Foo.qux([1,7,3,8], 7, 1)
+  "Something..."
+  ```
+
+  Note that the function ``qux/3`` uses two nested ``case`` statements to perform its operations, with the innermost ``case`` statement responsible for setting the boolean value of the second parameter in the call to ``convert/2``. As shown in the following code, we can simplify this code by replacing the innermost ``case`` statement with a strict equality comparison (``===``).
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do 
+    ...
+
+    def qux(list, value, index) do
+      case convert(list, Enum.at(list, index) === value) do
+        {:tuple, _} -> "Something..."
+        {:list, _}  -> "Something else..."
       end
     end
 
   end
+  
+  #...Use examples...
+  iex(1)> Foo.qux([1,7,3,8], 7, 0)  
+  "Something else..."
 
-  #...Retrieving code documentation...
-  iex(1)> h Bhaskara.solve/3
-                             
-  @spec solve(number(), number(), number()) ::
-          {atom(), String.t() | {number(), number()}}
+  iex(2)> Foo.qux([1,7,3,8], 7, 1)
+  "Something..."                 
   ```
 
-  Note that with the use of ``@spec``, we can easily check the function specification using Elixir's helper.
+[▲ back to Index](#table-of-contents)
+___
+
+### Move file
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ Move a project file between directories, which contains code such as modules, macros, structs, etc. This refactoring can improve the organization of an Elixir project, grouping related files in the same directory, which may, for example, belong to the same architectural layer. This refactoring can also impact the updating of references made by dependents of the code present in the moved file.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Remove dead code
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ Dead code (i.e., unused code) can pollute a codebase making it longer and harder to maintain. This refactoring aims to clean the codebase by eliminating code definitions that are not being used.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a function ``bar/2`` that modifies the two values received as parameters and then returns the power of both.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def bar(v1, v2) do
+      v1 = v1 ** 2
+      v2 = v2 + 5
+      dead_code = v2 / 2  #<= can be removed!
+      {:ok, v1 ** v2}
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> c("sample.ex")  
+  warning: variable "dead_code" is unused... sample.ex:5: Foo.bar/2
+
+  iex(2)> Foo.bar(2, 1) 
+  {:ok, 4096}
+  ```
+
+  Note that when this code is compiled, Elixir's compiler itself informs the existence of unused code that could be eliminated to clean up the codebase. As shown in the following code, this refactoring eliminated the ``dead_code`` in ``bar/2`` without causing any side effects to the function's behavior.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def bar(v1, v2) do
+      v1 = v1 ** 2
+      v2 = v2 + 5
+      {:ok, v1 ** v2}
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.bar(2, 1) 
+  {:ok, 4096}                
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Introduce or remove a duplicate definition
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ When we want to test a modification in a code without losing its original definition, we can temporarily duplicate it with a new identifier. Once this new version of the code is approved, it will replace the original version and the duplication will be removed.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a function ``bar/2`` that returns the power of their parameters.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def bar(v1, v2) do
+      v3 = v1 ** v2
+      {:ok, v3}
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.bar(5, 2) 
+  {:ok, 25}
+  ```
+
+  Imagine that for some reason it is necessary to change the definition of ``v3``, but while the new version of ``v3`` is not approved, we also want to keep the original version in the codebase. The following code shows the application of this refactoring, duplicating the definition of ``v3``.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def bar(v1, v2) do
+      v3 = v1 ** v2               #<= definition to be changed!
+      v3_duplication = v1 ** v2   #<= original version!
+      {:ok, v3}
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.bar(5, 2) 
+  {:ok, 25}               
+  ```
+
+  Note that the identifier of the introduced duplicated code (``v3_duplication``) should not conflict with any other existing identifier in the code. Once the new version of the code has been implemented and approved, the duplication can be removed from the codebase by this refactoring. If the new version is disapproved, we can return to the original version by applying [Rename an identifier](#rename-an-identifier) to it.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Introduce overloading
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ Function overloading enables the creation of variations of an existing function, that is, the definition of two or more functions with identical names but different parameters. In Elixir, this can be done with functions of different arities or with multi-clause functions of the same arity. This refactoring allows for the creation of a variation of a function, enabling its use in different contexts.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a function ``discount/1`` that allows applying a 30% discount on orders that cost at least ``100.0``.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Order do
+    defstruct [date: nil, total: nil]
+
+    def discount(%Order{total: t} = s) when t >= 100.0 do
+      %Order{s | total: t * 0.7}
+    end
+
+  end
+  
+  #...Use examples...
+  iex(1)> Order.discount(%Order{total: 150.0, date: ~D[2022-11-10]}) 
+  %Order{date: ~D[2022-11-10], total: 105.0}
+
+  iex(2)> Order.discount(%Order{total: 90.0, date: ~D[2022-10-18]}) 
+  ** (FunctionClauseError) no function clause matching in Order.discount/1  
+  ```
+
+  Consider a scenario where this e-commerce wants to implement new discount rules for new situations or specific dates. This could be done by overloading the ``discount/1`` function, creating for example a new clause for it that will be applied on purchases made on Christmas day, and also a variation ``discount/2``, that could be applied for discounts on exceptional cases. The following code presents these two refactorings of the original ``discount/1`` function.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Order do
+    defstruct [date: nil, total: nil]
+
+    # new
+    def discount(%Order{date: d, total: t} = s) when d.day == 25 and d.month == 12 do
+      %Order{s | total: t * 0.1}
+    end
+
+    # original
+    def discount(%Order{total: t} = s) when t >= 100.0 do
+      %Order{s | total: t * 0.7}
+    end
+
+    # new
+    def discount(%Order{total: t} = s, value) do
+      %Order{s| total: t * value}
+    end
+
+  end
+  
+  #...Use examples...
+  iex(1)> Order.discount(%Order{total: 150.0, date: ~D[2022-12-25]}) 
+  %Order{date: ~D[2022-12-25], total: 15.0}  
+  
+  iex(2)> Order.discount(%Order{total: 150.0, date: ~D[2022-11-10]}) 
+  %Order{date: ~D[2022-11-10], total: 105.0}
+
+  iex(3)> Order.discount(%Order{total: 90.0, date: ~D[2022-10-18]}, 0.8) 
+  %Order{date: ~D[2022-10-18], total: 72.0}           
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Remove import attributes
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ The use of the `import` directive in a module allows calling functions defined in other modules without having to specify them directly in each call. While this can reduce the size of code, the use of `import` can also harm the readability of code, making it difficult to identify directly the source of a function being called. This refactoring allows removing the `import` directives in a module, replacing all calls to imported functions with the format `Module.function(args)`.
+
+* __Examples:__ The following code shows an example of this refactoring.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Bar do
+    def sum(v1, v2) do
+      v1 + v2
+    end
+  end
+
+  defmodule Foo do
+    import Bar  #<= to be removed!
+
+    def qux(value_1, value_2) do
+      sum(value_1, value_2)   #<= imported function!
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.qux(1, 2) 
+  3
+  ```
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Bar do
+    def sum(v1, v2) do
+      v1 + v2
+    end
+  end
+
+  defmodule Foo do
+    def qux(value_1, value_2) do
+      Bar.sum(value_1, value_2)   #<= calling with a fully-qualified name
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.qux(1, 2) 
+  3
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Introduce import
+
+* __Category:__ Traditional Refactorings.
+
+* __Motivation:__ This refactoring is the inverse of [Remove import attributes](#remove-import-attributes). Recall that Remove import attributes allows you to remove `import` directives from a module, replacing all calls to imported functions with fully-qualified name calls (`Module.function(args)`). In contrast, Introduce import focuses on replacing fully-qualified name calls of functions from other modules with calls that use only the name of the imported functions.
+
+* __Examples:__ To better understand, take a look at the example in [Remove import attributes](#remove-import-attributes) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Group Case Branches
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. Specifically, this refactoring allows us to partition the branches of a ``case`` statement in a divide-and-conquer function into two categories: _(1)_ the base cases, and _(2)_ the recursive cases. This restructuring replaces the original ``case`` statement with four ``case`` statements.
+
+* __Examples:__ The following code examples illustrate a refactoring of the merge sort algorithm. Prior to the refactoring, the `merge_sort/1` function had only a single ``case`` statement to handle both the base case and the recursive case.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def merge_sort(list) do
+      case list do
+        []  -> []
+        [h] -> [h]
+        _   ->  half = length(list) |> div(2)
+                right = merge_sort(Enum.take(list, half))
+                left = merge_sort(Enum.drop(list, half))
+                merge(right, left)
+      end
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.merge_sort([3, 20, 9, 2, 7, 99, 80, 30])
+  [2, 3, 7, 9, 20, 30, 80, 99]
+  ```
+
+  After refactoring, this ``case`` statement is replaced by four separate ``case`` statements, each with its respective role:
+
+  - _(1 and 2)_ Determine whether the instance is a base case (``true``) or a recursive case (``false``);
+
+  - _(3 and 4)_ Define which specific base case or recursive case we are dealing with, respectively.
+  
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def merge_sort(list) do
+      is_base = case list do        #<= role 1
+                  []    -> true
+                  [_h]  -> true
+                  _     -> false
+                end
+
+      case is_base do               #<= role 2
+        true  ->  case list do      #<= role 3
+                    []  -> []
+                    [h] -> [h]
+                  end
+        false ->  case list do      #<= role 4
+                    _   ->  half = length(list) |> div(2)
+                            right = merge_sort(Enum.take(list, half))
+                            left = merge_sort(Enum.drop(list, half))
+                            merge(right, left)
+                  end
+      end
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.merge_sort([3, 20, 9, 2, 7, 99, 80, 30])
+  [2, 3, 7, 9, 20, 30, 80, 99]
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+## Move expression out of case
+
+* __Category:__ Traditional Refactoring.
+
+* __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. More precisely, this refactoring moves an expression outside of a `case` statement when it is repeated at the end of all branches.
+
+* __Examples:__ The following code examples demonstrate this refactoring. Before the refactoring, the `bar/2` function has a `case` statement with two branches. At the end of both branches, the expression `Integer.is_odd(value)` is repeated.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def bar(confirm, list) do
+      case confirm do
+        true  ->  value = Enum.at(list, 0)
+                  Integer.is_odd(value)
+        false ->  value = Enum.at(list, length(list)-1)
+                  Integer.is_odd(value)
+      end
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.bar(true, [6, 5, 4, 3, 2, 1])
+  false
+
+  iex(2)> Foo.bar(false, [6, 5, 4, 3, 2, 1])
+  true
+  ```
+
+  After the refactoring, `bar/2` retains the same behavior, but now with the expression `Integer.is_odd(value)` moved outside the ``case`` statement.
+  
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def bar(confirm, list) do
+      value = case confirm do
+                true  ->  Enum.at(list, 0)
+                false ->  Enum.at(list, length(list)-1)
+              end
+      Integer.is_odd(value) #<= out of case!
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.bar(true, [6, 5, 4, 3, 2, 1])
+  false
+
+  iex(2)> Foo.bar(false, [6, 5, 4, 3, 2, 1])
+  true
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+## Functional Refactorings
+
+Functional refactorings are those that use programming resources characteristic of functional languages, such as pattern matching and high-order functions. In this section, 19 different refactorings classified as functional are explained and exemplified:
+
+### Generalise a function definition
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ This refactoring helps to eliminate the [Duplicated Code][Duplicated Code] code smell. In any programming language, this code smell can make the codebase harder to maintain due to restrictions on code reuse. When different functions have equivalent expression structures, that structure should be generalized into a new function, which will later be called in the body of the duplicated functions, replacing their original codes. After that refactoring, the programmer only needs to worry about maintaining these expressions in one place (generic function). The support for ``high-order functions`` in functional programming languages enhances the potential for generalizing provided by this refactoring.
+
+* __Examples:__ In Elixir, as well as in other functional languages such as Erlang and Haskell, functions are considered as first-class citizens. This means that functions can be assigned to variables, allowing the definition of ``higher-order functions``. Higher-order functions are those that take one or more functions as arguments or return a function as a result. The following code illustrates this refactoring using a ``high-order function``. Before the refactoring, we have two functions in the ``Gen`` module. The ``foo/1`` function takes a list as an argument and transforms it in two steps. First, it squares each of its elements and then multiplies each element by 3, returning a new list. The ``bar/1`` function operates similarly, receiving a list as an argument and also transforming it in two steps. First, it doubles the value of each element in the list and then returns a list containing only the elements divisible by 4. Although these two functions transform lists in different ways, they have duplicated structures.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Gen do
+    def foo(list) do
+      list_comprehension = for x <- list, do: x * x
+
+      list_comprehension
+      |> Enum.map(&(&1 * 3))
+    end
+
+    def bar(list) do
+      list_comprehension = for x <- list, do: x + x
+
+      list_comprehension
+      |> Enum.filter(&(rem(&1, 4) == 0))
+    end
+  end
+
+  #...Use example...
+  iex(1)> Gen.foo([1, 2, 3])  
+  [3, 12, 27]
+
+  iex(2)> Gen.bar([2, 3, 4])
+  [4, 8]
+  ```
+
+  We want to generalize the functions ``foo/1`` and ``bar/1``. To do so, we must create a new function ``generic/4`` and replace the bodies of ``foo/1`` and ``bar/1`` with calls to ``generic/4``. Note that ``generic/4`` is a *__high-order function__*, since its last three arguments are functions that are called only within its body. Due to the use of high-order functions in this refactoring, we were able to create a smaller and easier-to-maintain new function than would be if we did not use this functional programming feature.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Gen do
+    def generic(list, generator_op, trans_op, trans_args) do
+      list_comprehension = for x <- list, do: generator_op.(x,x)
+
+      list_comprehension
+      |> trans_op.(trans_args)
+    end
+    
+    def foo(list) do
+      # Body replaced
+      generic(list, &Kernel.*/2, &Enum.map/2, &(&1 * 3))
+    end
+
+    def bar(list) do
+      # Body replaced
+      generic(list, &Kernel.+/2, &Enum.filter/2, &(rem(&1, 4) == 0))
+    end
+  end
+
+  #...Use example...
+  iex(1)> Gen.foo([1, 2, 3])  
+  [3, 12, 27]
+
+  iex(2)> Gen.bar([2, 3, 4])
+  [4, 8]
+  ```
+
+  This refactoring preserved the behaviors of ``foo/1`` and ``bar/1``, without the need to modify their calls. In addition, we eliminated the duplicated code, allowing the developer to focus solely on maintaining the generic function in the ``Gen`` module. Finally, if there is a need to create a new function for transforming lists in two steps, we can possibly reuse the code from ``generic/4`` without creating new duplications.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Introduce pattern matching over a parameter
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ Some functions have different branches that depend on the values passed to one or more parameters at call time to define the flow of execution. When these functions use classic conditional structures to implement these branches (e.g., ``if``, ``unless``, ``cond``, ``case``), they can get large bodies, becoming [Long Functions][Long Function], thus harming the maintainability of the code. This refactoring seeks to replace, when appropriate, these classic conditional structures that control the branches defined by parameter values, with pattern-matching features and multi-clause functions from functional languages such as Elixir, Erlang, and Haskell.
+
+* __Examples:__ The following code presents the ``fibonacci/1`` function. This recursive function has three different branches that are defined by the value of its single parameter, two for its base cases and one for its recursive case. The control flow for each of these branches is done by a classic conditional structure (``case``).
+
+  ```elixir
+  # Before refactoring:
+
+  def fibonacci(n) when is_integer(n) do
+    case n do
+      0 -> 0
+      1 -> 1
+      _ -> fibonacci(n-1) + fibonacci(n-2)
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.fibonacci(8) 
+  21
+  ```
+
+  We want to replace the classic ``case`` conditional by using pattern matching on the function parameter. This will turn this function into a multi-clause function, assigning each branch to a clause. Note that in addition to reducing the size of the function body by distributing the branches across the clauses, it is not necessary to make any changes to the ``fibonacci/1`` callers, since their behavior has been preserved.
+
+  ```elixir
+  # After refactoring:
+
+  def fibonacci(0), do: 0
+  def fibonacci(1), do: 1
+  def fibonacci(n) when is_integer(n) do
+    fibonacci(n-1) + fibonacci(n-2)
+  end
+
+  #...Use examples...
+  iex(1)> Foo.fibonacci(8) 
+  21
+  ```
+
+  __Important:__ Although ``fibonacci/1`` is not a [Long Functions][Long Function] and originally has simple expressions in each of its branches, it serves to illustrate the purpose of this refactoring. Try to imagine a scenario where a function has many different branches, each of which is made up of several lines of code. This would indeed be an ideal scenario to apply the proposed refactoring.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Turning anonymous into local functions
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ In Elixir, as well as in other functional languages like Erlang and Haskell, functions are considered as first-class citizens, which means that they can be assigned to variables. This enables the creation of anonymous functions, also called lambda functions, that can be assigned to variables and called from them. Although anonymous functions are very useful in many situations, they have less potential for reuse than local functions and cannot, for example, be exported to other modules. When we encounter the same anonymous function being defined in different points of the codebase ([Duplicated Code][Duplicated Code]), these anonymous functions should be transformed into a local function, and the locations where the anonymous functions were originally implemented should be updated to use the new local function. In functional languages, this refactoring is also referred to as lambda lifting and is a specific instance of [Extract Function](#extract-function). With this refactoring, we can reduce occurrences of duplicated code, enhancing code reuse potential.
+
+* __Examples:__ The following code illustrates this refactoring. Before the refactoring, we have two functions in the ``Lambda`` module. The ``foo/1`` function takes a list as an argument and doubles the value of each element, returning a new list. The ``bar/1`` function operates similarly, receiving a list as an argument and also doubles the value of each three elements, then returns a list. Note that both local functions ``foo/1`` and ``bar/1`` internally define the same anonymous function ``fn x -> x * 2 end`` for doubling the desired list values.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Lambda do
+    def foo(list) do
+      Enum.map(list, fn x -> x * 2 end)
+    end
+
+    def bar(list) do
+      Enum.map_every(list, 3, fn x -> x * 2 end)
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Lambda.foo([1, 2, 3])
+  [2, 4, 6]
+
+  iex(2)> Lambda.bar([3, 4, 5, 6, 7, 8, 9])
+  [6, 4, 5, 12, 7, 8, 18]
+  ```
+
+  We want to avoid the duplicated implementation of anonymous functions. To achieve this, we will create a new local function ``double/1``, responsible for performing the same operation previously performed by the duplicated anonymous functions. In addition, the Elixir capture operator (``&``) will be used in the places of ``foo/1`` and ``bar/1`` which originally implement anonymous functions, to replace their use with the new local function ``double/1``.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Lambda do
+    def double(x) do  #<- lambda lifted to a local function!
+      x * 2
+    end
+
+    def foo(list) do
+      Enum.map(list, &double/1)
+    end
+
+    def bar(list) do
+      Enum.map_every(list, 3, &double/1)
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Lambda.foo([1, 2, 3])
+  [2, 4, 6]
+
+  iex(2)> Lambda.bar([3, 4, 5, 6, 7, 8, 9])
+  [6, 4, 5, 12, 7, 8, 18]
+  ```
+
+  Note that although in this example the new local function ``double/1``, defined to replace the duplicated anonymous functions, was only used in the ``Lambda`` module, nothing prevents it from being reused in other parts of the codebase, as ``double/1`` can be imported by any other module.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Merging multiple definitions
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ This refactoring is also an option for removing [Duplicated Code][Duplicated Code] and can optimize a codebase by sharing that code in a single location, avoiding multiple traversals over the same data structure. There are situations where a codebase may have distinct functions that are complementary. Because they are complementary, these functions may have identical code snippets. When identified, these functions should be merged into a new function that will simultaneously perform the processing done by the original functions separately. The new function created by this refactoring will always return a tuple, where each original return provided by the merged functions will be contained in different elements of the tuple returned by the new function. In functional languages, this refactoring is also referred to as ``tupling``.
+
+* __Examples:__ The following code illustrates this refactoring. Before the refactoring, we have two functions in the ``MyList`` module. The ``take/2`` function takes an integer value ``n`` and a list as parameters, returning a new list composed of the first ``n`` elements of the original list. The ``drop/2`` function also takes an integer value ``n`` and a list as parameters, but ignores the first ``n`` elements of the original list, returning a new list composed of the remaining elements. Note that although ``take/2`` and ``drop/2`` return different values, they are complementary multi-clause functions and therefore have many nearly identical code snippets.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule MyList do
+    def take(0, _), do: []
+    def take(_, []), do: []
+    def take(n, [h | t]) when n > 0 do
+      [h | take(n-1, t)]
+    end
+    def take(_, _), do: :error_take_negative
+
+    def drop(0, list), do: list
+    def drop(_, []), do: []
+    def drop(n, [h | t]) when n > 0 do
+      drop(n-1, t)
+    end
+    def drop(_, _), do: :error_drop_negative
+  end
+
+  #...Use examples...
+  iex(1)> list = [1, 2, 3, 4, 5 , 6]
+  
+  iex(2)> MyList.take(2, list)
+  [1, 2]
+
+  iex(3)> MyList.drop(2, list) 
+  [3, 4, 5, 6]
+  ```
+
+  If we analyze the examples of using the code above, we can clearly see how these functions are complementary. Both received the same list as a parameter and by joining the lists returned by them, we will have the same elements of the original list, in other words, it is as if we had split the original list after the second element and ignored one of the two sub-lists in each of the functions.
+  
+  Thinking about this, we can merge these two complementary functions into a new function called ``split_at/2``. This function will remove duplicate expressions by introducing code sharing. In addition, it will return a tuple composed of two elements. The first element will contain the value that would originally be returned by ``take/2`` and the second element will contain the value that would be returned by ``drop/2``.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule MyList do
+    def take(0, _), do: []        #<- can be deleted in the future!
+    def take(_, []), do: []
+    def take(n, [h | t]) when n > 0 do
+      [h | take(n-1, t)]
+    end
+    def take(_, _), do: :error_take_negative
+
+    def drop(0, list), do: list   #<- can be deleted in the future!
+    def drop(_, []), do: []
+    def drop(n, [h | t]) when n > 0 do
+      drop(n-1, t)
+    end
+    def drop(_, _), do: :error_drop_negative
+
+    # Merging take and drop!
+    def split_at(0, list), do: {[], list}
+    def split_at(_, []), do: {[], []}
+    def split_at(n, [h | t]) when n > 0 do
+      {ts, zs} = split_at(n-1, t)
+      {[h | ts], zs}
+    end
+    def split_at(_, _), do: {:error_take_negative, :error_drop_negative}
+  end
+
+  #...Use examples...
+  iex(1)> list = [1, 2, 3, 4, 5 , 6]
+  
+  iex(2)> MyList.split_at(2, list)
+  {[1, 2], [3, 4, 5, 6]}
+  ```
+
+  In the refactored code above, we kept the functions ``take/2`` and ``drop/2`` in the ``MyList`` module just so the reader could more easily compare how this merge allowed code sharing. They were not modified. From a practical point of view, the calls to ``take/2`` and ``drop/2`` can be replaced by calls to ``split_at/2``, with their respective returns being extracted via pattern matching, as in the example below:
+
+  ```elixir
+  iex(1)> {take, drop} = MyList.split_at(2, [1,2,3,4,5,6])
+
+  iex(2)> take
+  [1, 2]
+
+  iex(3)> drop
+  [3, 4, 5, 6]
+  ```
+
+  The functions ``take/2`` and ``drop/2`` can be deleted from ``MyList`` once all their calls have been replaced by calls to ``split_at/2``.
+
+  These examples are based on Haskell code written in two papers. Source: [[1]](https://dl.acm.org/doi/10.1145/1706356.1706378), [[2]](https://www.cs.kent.ac.uk/pubs/2010/3009/index.html).
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Splitting a definition
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ This refactoring is the inverse of [Merging multiple definitions](#merging-multiple-definitions). While merge multiple definitions aims to group recursive functions into a single recursive function that returns a tuple, splitting a definition aims to separate a recursive function by creating new recursive functions, each of them responsible for individually generating a respective element originally contained in a tuple.
+
+* __Examples:__ Take a look at the example in [Merging multiple definitions](#merging-multiple-definitions) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Inline macro substitution
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ ``Macros`` are powerful meta-programming mechanisms that can be used in Elixir, as well as other functional languages like Erlang and Clojure, to extend the language. However, when a macro is implemented to solve problems that could be solved by functions or other pre-existing language structures, the code becomes unnecessarily more complex and less readable. Therefore, when identifying unnecessary macros that have been implemented, we can replace all instances of these macros with the code defined in their bodies. Some code compensations will be necessary to ensure that they continue to perform properly after refactoring. This refactoring is a specialization of the [Inline function](#inline-function) and can be used to remove the code smell [Unnecessary Macros][Unnecessary Macros].
+
+* __Examples:__ The following code illustrates this refactoring. Before the refactoring, we have a macro ``sum_macro/2`` defined in the ``MyMacro`` module. This macro is used by the ``bar/2`` function in the ``Foo`` module, unnecessarily complicating the code's readability.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule MyMacro do
+    defmacro sum_macro(v1, v2) do
+      quote do
+        unquote(v1) + unquote(v2)
+      end
+    end
+  end
+  ```
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def bar(v1, v2) do
+      require MyMacro
+      MyMacro.sum_macro(v1, v2)
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.bar(2, 3)            
+  5
+  ```
+
+  To eliminate the unnecessary macro ``MyMacro.sum_macro/2``, we will replace all its calls with its body, making some code adjustments. Then, we can delete ``MyMacro.sum_macro/2`` since it will no longer be used.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def bar(v1, v2) do
+      v1 + v2   #<- inlined macro!
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.bar(2, 3)            
+  5
+  ```
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -1408,77 +1824,6 @@ ___
   iex(2)> [1, 2, 3, 4, 5] -- [1, 3]
   [2, 4, 5]                           
   ```
-
-[▲ back to Index](#table-of-contents)
-___
-
-### Transform to list comprehension
-
-* __Category:__ Elixir-specific Refactorings*.
-
-* __Motivation:__ Elixir, like Erlang, provides several built-in ``high-order functions`` capable of taking lists as parameters and returning new lists modified from the original. In Elixir, ``Enum.map/2`` takes a list and an anonymous function as parameters, creating a new list composed of each element of the original list with values altered by applying the anonymous function. On the other hand, the function ``Enum.filter/2`` also takes a list and an anonymous function as parameters but creates a new list composed of elements from the original list that pass the filter established by the anonymous function. A list comprehension is another syntactic construction capable to create a list based on existing ones. This feature is based on the mathematical notation for defining sets and is very common in functional languages such as Haskell, Erlang, Clojure, and Elixir. This refactoring aims to transform calls to ``Enum.map/2`` and ``Enum.filter/2`` into list comprehensions, creating a semantically equivalent code that can be more declarative and easy to read.
-
-* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we are using ``Enum.map/2`` to create a new list containing the elements of the original list squared. Furthermore, we are using ``Enum.filter/2`` to create a new list containing only the even numbers present in the original list.
-
-  ```elixir
-  # Before refactoring:
-
-  iex(1)> Enum.map([2, 3, 4], &(&1 * &1))
-  [4, 9, 16]
-
-  iex(2)> Enum.filter([1, 2, 3, 4, 5], &(rem(&1, 2) == 0))
-  [2, 4]
-  ```
-
-  We can replace the use of ``Enum.map/2`` and ``Enum.filter/2`` with the creation of semantically equivalent list comprehensions in Elixir, making the code more declarative as shown below.
-
-  ```elixir
-  # After refactoring:
-
-  iex(1)> for x <- [2, 3, 4], do: x * x
-  [4, 9, 16]
-
-  iex(2)> for x <- [1, 2, 3, 4, 5], rem(x, 2) == 0, do: x 
-  [2, 4]                       
-  ```
-
-[▲ back to Index](#table-of-contents)
-___
-
-### Nested list functions to comprehension
-
-* __Category:__ Elixir-specific Refactorings*.
-
-* __Motivation:__ This refactoring is a specific instance of [Transform to list comprehension](#transform-to-list-comprehension). When ``Enum.map/2`` and ``Enum.filter/2`` are used in a nested way to generate a new list, the code readability is compromised, and we also have an inefficient code, since the original list can be visited more than once and an intermediate list needs to be built. This refactoring, also referred to as ``deforestation``, aims to transform nested calls to ``Enum.map/2`` and ``Enum.filter/2`` into a list comprehension, creating a semantically equivalent code that can be more readable and more efficient.
-
-* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we are using ``Enum.map/2`` and ``Enum.filter/2`` in a nested way to create a new list containing only the even elements of the original list squared
-
-  ```elixir
-  # Before refactoring:
-
-  iex(1)> Enum.filter([1, 2, 3, 4, 5], &(rem(&1, 2) == 0)) |> Enum.map(&(&1 * &1))
-  [4, 16]
-  ```
-
-  We can replace these nested calls with the creation of semantically equivalent list comprehension in Elixir, making the code more declarative and efficient as shown below.
-
-  ```elixir
-  # After refactoring:
-
-  iex(1)> for x <- [1, 2, 3, 4, 5], rem(x, 2) == 0, do: x * x
-  [4, 16]                       
-  ```
-
-[▲ back to Index](#table-of-contents)
-___
-
-### List comprehension simplifications
-
-* __Category:__ Elixir-specific Refactorings*.
-
-* __Motivation:__ This refactoring is the inverse of [Transform to list comprehension](#transform-to-list-comprehension) and [Nested list functions to comprehension](#nested-list-functions-to-comprehension). We can apply this refactoring to existing list comprehensions in the Elixir codebase, transforming them into semantically equivalent calls to the functions ``Enum.map/2`` or ``Enum.filter/2``.
-
-* __Examples:__ Take a look at the examples in [Transform to list comprehension](#transform-to-list-comprehension) and [Nested list functions to comprehension](#nested-list-functions-to-comprehension) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -1864,299 +2209,437 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Eliminate single branch
+### Widen or narrow definition scope
 
-* __Category:__ Traditional Refactoring*.
+* __Category:__ Functional Refactorings.
 
-* __Motivation:__ This refactoring aims to simplify the code by eliminating control statements that have only one possible flow.
+* __Motivation:__ In Elixir, it is not possible to define nested named functions, however, it is possible to define a nested anonymous function (inside) of a named function. In this case, the anonymous function's scope is narrowed to the body of the named function where it was defined. This refactoring aims to widen or narrow a function's usage scope.
 
-* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a function ``qux/1`` with a ``case`` statement that has only one branch. When the pattern matching of this single branch does not occur, this function raises a ``CaseClauseError``.
+* __Examples:__ The following code examples illustrate the widening of a function's scope. Prior to refactoring, the module `Foo` has the definition of the named function `bar/3`. Within this named function, we have the definition of the nested anonymous function `my_div/2`. Note that the scope of the `my_div/2` function is narrowed to the body of the `bar/3` function.
 
   ```elixir
   # Before refactoring:
 
   defmodule Foo do
-    def qux(value) do
-      case value do
-        {:ok, v1, v2} ->
-          (v1 + v1) * v2
+    def bar(v1, v2, v3) do
+      my_div = fn
+        (_, 0) -> {:error, "invalid!"}
+        (x, y) -> {:ok, x/y}
+      end
+
+      case my_div.(v1, v2) do
+        {:error, msg} -> msg
+        {:ok, value} -> value * v3
       end
     end
   end
-  
-  #...Use examples...
-  iex(1)> Foo.qux({:ok, 2, 4})
-  16
 
-  iex(2)> Foo.qux({:error, 2, 4})
-  ** (CaseClauseError) no case clause matching: {:error, 2, 4}
+  #...Use examples...
+  iex(1)> Foo.bar(10, 0, 5)
+  "invalid!"
+
+  iex(2)> Foo.bar(10, 2, 5)
+  25.0
+
+  iex(3)> my_div.(10, 2)
+  warning: variable "my_div" does not exist...
+  ** (CompileError) undefined function my_div/0...
   ```
 
-  As shown in the following code, we can simplify this code by replacing the ``case`` statement with the code that would be executed by their single branch.
+  To widen the scope of the anonymous function `my_div/2`, we can transform it into a named function defined outside of `bar/3`. In addition, we must replace all calls to the anonymous function `my_div/2` with calls to the newly named function `my_div/2`, as shown below.
 
   ```elixir
   # After refactoring:
 
-  defmodule Foo do 
-    def qux(value) do
-      {:ok, v1, v2} = value
-      (v1 + v1) * v2
-    end
-  end
-  
-  #...Use examples...
-  iex(1)> Foo.qux({:ok, 2, 4}) 
-  16
-
-  iex(2)> Foo.qux({:error, 2, 4})
-  ** (MatchError) no match of right hand side value: {:error, 2, 4}                   
-  ```
-
-  Note that the only behavioral difference between the original and refactored code is that a different error is raised when the pattern matching does not occur (i.e., ``MatchError``). This could be compensated for by using the error-handling mechanism of Elixir, as shown in [Converts guards to conditionals](#converts-guards-to-conditionals).
-
-[▲ back to Index](#table-of-contents)
-___
-
-### Simplifying nested conditional statements
-
-* __Category:__ Traditional Refactoring.
-
-* __Motivation:__ Sometimes nested conditional statements can unnecessarily decrease the readability of the code. This refactoring aims to simplify the code by eliminating unnecessary nested conditional statements.
-
-* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have the functions ``convert/2`` and ``qux/3``. The private function ``convert/2`` takes a ``list`` and a boolean value ``switch`` as parameters. If ``switch`` is true, the ```list``` is converted to a tuple; otherwise, the ``list`` is not modified. The public function ``qux/3`` takes a ``list``, a ``value``, and an ``index`` as parameters and then calls the ``convert/2`` function. If the ``list`` contains the ``value`` at the ``index``, ``qux/3`` calls the ``convert/2`` function with the second parameter set to true; otherwise, the second parameter is set to false.
-
-  ```elixir
-  # Before refactoring:
-
   defmodule Foo do
-    defp convert(list, switch) do
-      case switch do
-        true -> {:tuple, List.to_tuple(list)}
-        _    -> {:list, list}
+    def bar(v1, v2, v3) do
+      case my_div(v1, v2) do
+        {:error, msg} -> msg
+        {:ok, value} -> value * v3
       end
     end
 
-    def qux(list, value, index) do
-      case convert(list, case Enum.at(list, index) do
-                            ^value -> true
-                            _      -> false
-                          end) do
-        {:tuple, _} -> "Something..."
-        {:list, _}  -> "Something else..."
+    # new multi-clause named function with widened scope!
+    def my_div(_, 0), do: {:error, "invalid!"}
+    def my_div(x, y), do: {:ok, x/y}
+  end
+
+  #...Use examples...
+  iex(1)> Foo.bar(10, 0, 5)
+  "invalid!"
+
+  iex(2)> Foo.bar(10, 2, 5)
+  25.0
+
+  iex(3)> Foo.my_div(10, 2)
+  {:ok, 5.0}
+
+  iex(4)> Foo.my_div(10, 0)
+  {:error, "invalid!"}
+  ```
+
+  Considering this example, to narrow the scope of `my_div/2`, we can perform the reverse refactoring, that is, `# After refactoring:` -> `# Before refactoring:`.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Introduce Enum.map/2
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. Specifically, this refactoring allows us to replace a list expression in which each element is generated by calling the same function with a call to the high-order function ``Enum.map/2``.
+
+* __Examples:__ The following code examples demonstrate this refactoring. Before the refactoring, the `bar/2` function generates a list composed of two lists sorted by the `merge_sort/1` function.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def bar(list, list_2) do
+      [merge_sort(list), merge_sort(list_2)]
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.bar([1, 3, 9, 0, 2], [90, -5, 0, 10, 8])
+  [[0, 1, 2, 3, 9], [-5, 0, 8, 10, 90]]
+  ```
+
+  After refactoring, `bar/2` retains the same behavior, but now uses the `Enum.map/2` function to generate the elements of the returned list.
+  
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def bar(list, list_2) do
+      Enum.map([list, list_2], &merge_sort/1)
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.bar([1, 3, 9, 0, 2], [90, -5, 0, 10, 8])
+  [[0, 1, 2, 3, 9], [-5, 0, 8, 10, 90]]
+  ```
+
+  Note that this refactoring produces code that enables the application of [Transform to list comprehension](#transform-to-list-comprehension).
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Bindings to List
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. More precisely, this refactoring merges a series of match expressions into a single match expression that employs a list pattern.
+
+* __Examples:__ The following code examples demonstrate this refactoring. Before the refactoring, the `bar/2` function has a sequence of two match expressions that use the `merge_sort/1` function.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def bar(list, list_2) do
+      e_1 = merge_sort(list)
+      e_2 = merge_sort(list_2)
+      
+      # do something with e_1 and e_2 ...
+    end
+  end
+  ```
+
+  After refactoring, `bar/2` retains the same behavior, but now uses a single match expression with a list pattern.
+  
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def bar(list, list_2) do
+      [e_1, e_2] = [merge_sort(list), merge_sort(list_2)]
+      
+      # do something with e_1 and e_2 ...
+    end
+  end
+  ```
+
+  Note that this refactoring produces code that enables the application of [Introduce Enum.map/2](#introduce-enummap2).
+
+[▲ back to Index](#table-of-contents)
+___
+
+## Function clauses to/from case clauses
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. More precisely, this refactoring allows transforming a multi-clause function into a single-clause function, mapping function clauses into clauses of a ``case`` statement. The reverse can also occur, i.e., mapping a ``case`` statement clause into function clauses, thus transforming a single-clause function into a multi-clause function.
+
+* __Examples:__ The following code examples demonstrate this refactoring. Before the refactoring, the `merge_sort/1` function has three clauses, with two for its base cases and one for its recursive case.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def merge_sort([]), do: []    #<= base case
+    def merge_sort([h]), do: [h]  #<= base case
+
+    def merge_sort(list) do       #<= recursive case
+      half = length(list) |> div(2)
+      right = merge_sort(Enum.take(list, half))
+      left = merge_sort(Enum.drop(list, half))
+      merge(right, left)
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.merge_sort([3, 20, 9, 2, 7, 99, 80, 30])
+  [2, 3, 7, 9, 20, 30, 80, 99]
+  ```
+
+  After the refactoring, `merge_sort/1` retains the same behavior, but now having only one clause, since both its base cases and recursive case were mapped into clauses of a `case` statement.
+  
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def merge_sort(list) do
+      case list do
+        []  -> []
+        [h] -> [h]
+        _   ->  half = length(list) |> div(2)
+                right = merge_sort(Enum.take(list, half))
+                left = merge_sort(Enum.drop(list, half))
+                merge(right, left)
       end
     end
   end
-  
-  #...Use examples...
-  iex(1)> Foo.qux([1,7,3,8], 7, 0)  
-  "Something else..."
 
-  iex(2)> Foo.qux([1,7,3,8], 7, 1)
-  "Something..."
+  #...Use examples...
+  iex(1)> Foo.merge_sort([3, 20, 9, 2, 7, 99, 80, 30])
+  [2, 3, 7, 9, 20, 30, 80, 99]
   ```
 
-  Note that the function ``qux/3`` uses two nested ``case`` statements to perform its operations, with the innermost ``case`` statement responsible for setting the boolean value of the second parameter in the call to ``convert/2``. As shown in the following code, we can simplify this code by replacing the innermost ``case`` statement with a strict equality comparison (``===``).
+  Note that this refactoring example could also be done in reverse order, that is, `# After refactoring:` -> `# Before refactoring:`.
 
+[▲ back to Index](#table-of-contents)
+___
+
+## Transform a body-recursive function to a tail-recursive
+
+* __Category:__ Functional Refactorings*.
+
+* __Motivation:__ In Erlang and Elixir, there are two common styles for writing recursive functions: body-recursion and tail-recursion. Body-recursion allows for the recursive call to occur anywhere within the function body, while tail-recursion specifies that the recursive call must be the last operation performed before returning. To implement a tail-recursive function, an accumulating parameter is often used to store the intermediate results of the computation. When a tail-recursive function calls itself, the Erlang VM can perform a clever optimization technique known as tail-call optimization. This means that the function can continue without waiting for its recursive call to return. This optimization can enhance code parallelization and lead to more efficient code. To take advantage of the tail-call optimization provided by the Erlang VM, this refactoring aims to convert a body-recursive function into a tail-recursive one.
+
+* __Examples:__ The code examples below illustrate this refactoring. Prior to the refactoring, the `sum_list_elements/1` function uses body-recursion to sum all elements in a list.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def sum_list_elements([]), do: 0
+
+    def sum_list_elements([head | tail]) do
+      sum_list_elements(tail) + head
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.sum_list_elements([1, 2, 3, 4, 5, 6])
+  21
+  ```
+
+  Following the refactoring, `sum_list_elements/1` retains the same behavior but now uses tail-recursion to sum all elements in a list. Note that a private recursive function `do_sum_list_elements/2` was created to support this refactoring.
+  
   ```elixir
   # After refactoring:
 
-  defmodule Foo do 
-    ...
+  defmodule Foo do
+    def sum_list_elements(list) do
+      do_sum_list_elements(list, 0)
+    end
 
-    def qux(list, value, index) do
-      case convert(list, Enum.at(list, index) === value) do
-        {:tuple, _} -> "Something..."
-        {:list, _}  -> "Something else..."
+    defp do_sum_list_elements([], sum), do: sum
+
+    defp do_sum_list_elements([head | tail], sum) do
+      do_sum_list_elements(tail, sum + head)
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.sum_list_elements([1, 2, 3, 4, 5, 6])
+  21
+  ```
+
+  The following code can be used to compare the performance of the two solutions. In this code, the `sum_list_elements/1` function has illustrative names `before_ref/1` and `after_ref/1` to represent their respective body-recursive and tail-recursive versions.
+
+  ```elixir
+  defp time(func, args) do
+    t_0 = Time.utc_now()
+    func.(args)
+    Time.diff(Time.utc_now(), t_0, :millisecond)
+  end
+
+  def compare(list \\ Enum.to_list(1..1_000_000)) do
+    IO.puts("Body recursive: #{time(&before_ref/1, list)} millisecond(s)")
+    IO.puts("Tail recursive: #{time(&after_ref/1, list)} millisecond(s)")
+  end
+
+  #...Use examples...
+  iex(1)> Foo.compare()
+  Body recursive: 44 millisecond(s)
+  Tail recursive: 4 millisecond(s)
+  ```
+
+  Note that for a list with one million elements, the tail-recursive version was up to 10 times faster than the body-recursive version.
+
+[▲ back to Index](#table-of-contents)
+___
+
+## Elixir-Specific Refactorings
+
+Elixir-specific refactorings are those that use programming resources exclusive to Elixir or the Erlang ecosystem (e.g., OTP). In this section, 11 different refactorings classified as Elixir-specific are explained and exemplified:
+
+### Generate function specification
+
+* __Category:__ Elixir-specific Refactorings*.
+
+* __Motivation:__ Despite being a dynamically-typed language, Elixir offers a feature to compensate for the lack of a static type system. By using ``Typespecs``, we can specify the types of each function parameter and of the return value. Utilizing this Elixir feature not only improves documentation, but also can enhance code readability and prepare it to be analyzed for tools like [Dialyzer][Dialyzer], enabling the detection of type inconsistencies, and potential bugs. The goal of this refactoring is simply to use ``Typespecs`` in a function to promote the aforementioned benefits of using this feature.
+
+* __Examples:__ The following code has already been presented in another context in the refactoring [Merge expressions](#merge-expressions). Prior to the refactoring, we have a module ``Bhaskara`` composed of the function ``solve/3``, responsible for finding the roots of a quadratic equation. Note that this function should receive three real numbers as parameters and return a tuple of two elements. The first element of this tuple is always an atom, while the second element may be a String (if there are no roots) or a tuple containing the two roots of the quadratic equation.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Bhaskara do
+    
+    def solve(a, b, c) do
+      delta = (b*b - 4*a*c)
+
+      if delta < 0 do
+        {:error, "No real roots"}
+      else
+        x1 = (-b + delta ** 0.5) / (2*a)
+        x2 = (-b - delta ** 0.5) / (2*a)
+        {:ok, {x1, x2}}
       end
     end
 
   end
-  
-  #...Use examples...
-  iex(1)> Foo.qux([1,7,3,8], 7, 0)  
-  "Something else..."
 
-  iex(2)> Foo.qux([1,7,3,8], 7, 1)
-  "Something..."                 
+  #...Use examples...
+  iex(1)> Bhaskara.solve(1, 3, -4) 
+  {:ok, {1.0, -4.0}}
+
+  iex(2)> Bhaskara.solve(1, 2, 3)
+  {:error, "No real roots"}
   ```
 
-[▲ back to Index](#table-of-contents)
-___
-
-### Move file
-
-* __Category:__ Traditional Refactoring.
-
-* __Motivation:__ Move a project file between directories, which contains code such as modules, macros, structs, etc. This refactoring can improve the organization of an Elixir project, grouping related files in the same directory, which may, for example, belong to the same architectural layer. This refactoring can also impact the updating of references made by dependents of the code present in the moved file.
-
-[▲ back to Index](#table-of-contents)
-___
-
-### Remove dead code
-
-* __Category:__ Traditional Refactoring.
-
-* __Motivation:__ Dead code (i.e., unused code) can pollute a codebase making it longer and harder to maintain. This refactoring aims to clean the codebase by eliminating code definitions that are not being used.
-
-* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a function ``bar/2`` that modifies the two values received as parameters and then returns the power of both.
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule Foo do
-    def bar(v1, v2) do
-      v1 = v1 ** 2
-      v2 = v2 + 5
-      dead_code = v2 / 2  #<= can be removed!
-      {:ok, v1 ** v2}
-    end
-  end
-  
-  #...Use examples...
-  iex(1)> c("sample.ex")  
-  warning: variable "dead_code" is unused... sample.ex:5: Foo.bar/2
-
-  iex(2)> Foo.bar(2, 1) 
-  {:ok, 4096}
-  ```
-
-  Note that when this code is compiled, Elixir's compiler itself informs the existence of unused code that could be eliminated to clean up the codebase. As shown in the following code, this refactoring eliminated the ``dead_code`` in ``bar/2`` without causing any side effects to the function's behavior.
+  To easier this code understanding and leverage the other aforementioned benefits, we can generate a function specification using the ``@spec`` module attribute which is a default feature of Elixir. This module attribute should be placed immediately before the function definition, following the pattern ``@spec function_name(arg_type, arg_type...) :: return_type``.
 
   ```elixir
   # After refactoring:
 
-  defmodule Foo do
-    def bar(v1, v2) do
-      v1 = v1 ** 2
-      v2 = v2 + 5
-      {:ok, v1 ** v2}
+  defmodule Bhaskara do
+    
+    @spec solve(number, number, number) :: {atom, String.t() | {number, number}}
+    def solve(a, b, c) do
+      delta = (b*b - 4*a*c)
+
+      if delta < 0 do
+        {:error, "No real roots"}
+      else
+        x1 = (-b + delta ** 0.5) / (2*a)
+        x2 = (-b - delta ** 0.5) / (2*a)
+        {:ok, {x1, x2}}
+      end
     end
+
   end
-  
-  #...Use examples...
-  iex(1)> Foo.bar(2, 1) 
-  {:ok, 4096}                
+
+  #...Retrieving code documentation...
+  iex(1)> h Bhaskara.solve/3
+                             
+  @spec solve(number(), number(), number()) ::
+          {atom(), String.t() | {number(), number()}}
+  ```
+
+  Note that with the use of ``@spec``, we can easily check the function specification using Elixir's helper.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Transform to list comprehension
+
+* __Category:__ Elixir-specific Refactorings*.
+
+* __Motivation:__ Elixir, like Erlang, provides several built-in ``high-order functions`` capable of taking lists as parameters and returning new lists modified from the original. In Elixir, ``Enum.map/2`` takes a list and an anonymous function as parameters, creating a new list composed of each element of the original list with values altered by applying the anonymous function. On the other hand, the function ``Enum.filter/2`` also takes a list and an anonymous function as parameters but creates a new list composed of elements from the original list that pass the filter established by the anonymous function. A list comprehension is another syntactic construction capable to create a list based on existing ones. This feature is based on the mathematical notation for defining sets and is very common in functional languages such as Haskell, Erlang, Clojure, and Elixir. This refactoring aims to transform calls to ``Enum.map/2`` and ``Enum.filter/2`` into list comprehensions, creating a semantically equivalent code that can be more declarative and easy to read.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we are using ``Enum.map/2`` to create a new list containing the elements of the original list squared. Furthermore, we are using ``Enum.filter/2`` to create a new list containing only the even numbers present in the original list.
+
+  ```elixir
+  # Before refactoring:
+
+  iex(1)> Enum.map([2, 3, 4], &(&1 * &1))
+  [4, 9, 16]
+
+  iex(2)> Enum.filter([1, 2, 3, 4, 5], &(rem(&1, 2) == 0))
+  [2, 4]
+  ```
+
+  We can replace the use of ``Enum.map/2`` and ``Enum.filter/2`` with the creation of semantically equivalent list comprehensions in Elixir, making the code more declarative as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  iex(1)> for x <- [2, 3, 4], do: x * x
+  [4, 9, 16]
+
+  iex(2)> for x <- [1, 2, 3, 4, 5], rem(x, 2) == 0, do: x 
+  [2, 4]                       
   ```
 
 [▲ back to Index](#table-of-contents)
 ___
 
-### Introduce or remove a duplicate definition
+### Nested list functions to comprehension
 
-* __Category:__ Traditional Refactoring.
+* __Category:__ Elixir-specific Refactorings*.
 
-* __Motivation:__ When we want to test a modification in a code without losing its original definition, we can temporarily duplicate it with a new identifier. Once this new version of the code is approved, it will replace the original version and the duplication will be removed.
+* __Motivation:__ This refactoring is a specific instance of [Transform to list comprehension](#transform-to-list-comprehension). When ``Enum.map/2`` and ``Enum.filter/2`` are used in a nested way to generate a new list, the code readability is compromised, and we also have an inefficient code, since the original list can be visited more than once and an intermediate list needs to be built. This refactoring, also referred to as ``deforestation``, aims to transform nested calls to ``Enum.map/2`` and ``Enum.filter/2`` into a list comprehension, creating a semantically equivalent code that can be more readable and more efficient.
 
-* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a function ``bar/2`` that returns the power of their parameters.
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we are using ``Enum.map/2`` and ``Enum.filter/2`` in a nested way to create a new list containing only the even elements of the original list squared
 
   ```elixir
   # Before refactoring:
 
-  defmodule Foo do
-    def bar(v1, v2) do
-      v3 = v1 ** v2
-      {:ok, v3}
-    end
-  end
-  
-  #...Use examples...
-  iex(1)> Foo.bar(5, 2) 
-  {:ok, 25}
+  iex(1)> Enum.filter([1, 2, 3, 4, 5], &(rem(&1, 2) == 0)) |> Enum.map(&(&1 * &1))
+  [4, 16]
   ```
 
-  Imagine that for some reason it is necessary to change the definition of ``v3``, but while the new version of ``v3`` is not approved, we also want to keep the original version in the codebase. The following code shows the application of this refactoring, duplicating the definition of ``v3``.
+  We can replace these nested calls with the creation of semantically equivalent list comprehension in Elixir, making the code more declarative and efficient as shown below.
 
   ```elixir
   # After refactoring:
 
-  defmodule Foo do
-    def bar(v1, v2) do
-      v3 = v1 ** v2               #<= definition to be changed!
-      v3_duplication = v1 ** v2   #<= original version!
-      {:ok, v3}
-    end
-  end
-  
-  #...Use examples...
-  iex(1)> Foo.bar(5, 2) 
-  {:ok, 25}               
+  iex(1)> for x <- [1, 2, 3, 4, 5], rem(x, 2) == 0, do: x * x
+  [4, 16]                       
   ```
-
-  Note that the identifier of the introduced duplicated code (``v3_duplication``) should not conflict with any other existing identifier in the code. Once the new version of the code has been implemented and approved, the duplication can be removed from the codebase by this refactoring. If the new version is disapproved, we can return to the original version by applying [Rename an identifier](#rename-an-identifier) to it.
 
 [▲ back to Index](#table-of-contents)
 ___
 
-### Introduce overloading
+### List comprehension simplifications
 
-* __Category:__ Traditional Refactoring.
+* __Category:__ Elixir-specific Refactorings*.
 
-* __Motivation:__ Function overloading enables the creation of variations of an existing function, that is, the definition of two or more functions with identical names but different parameters. In Elixir, this can be done with functions of different arities or with multi-clause functions of the same arity. This refactoring allows for the creation of a variation of a function, enabling its use in different contexts.
+* __Motivation:__ This refactoring is the inverse of [Transform to list comprehension](#transform-to-list-comprehension) and [Nested list functions to comprehension](#nested-list-functions-to-comprehension). We can apply this refactoring to existing list comprehensions in the Elixir codebase, transforming them into semantically equivalent calls to the functions ``Enum.map/2`` or ``Enum.filter/2``.
 
-* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a function ``discount/1`` that allows applying a 30% discount on orders that cost at least ``100.0``.
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule Order do
-    defstruct [date: nil, total: nil]
-
-    def discount(%Order{total: t} = s) when t >= 100.0 do
-      %Order{s | total: t * 0.7}
-    end
-
-  end
-  
-  #...Use examples...
-  iex(1)> Order.discount(%Order{total: 150.0, date: ~D[2022-11-10]}) 
-  %Order{date: ~D[2022-11-10], total: 105.0}
-
-  iex(2)> Order.discount(%Order{total: 90.0, date: ~D[2022-10-18]}) 
-  ** (FunctionClauseError) no function clause matching in Order.discount/1  
-  ```
-
-  Consider a scenario where this e-commerce wants to implement new discount rules for new situations or specific dates. This could be done by overloading the ``discount/1`` function, creating for example a new clause for it that will be applied on purchases made on Christmas day, and also a variation ``discount/2``, that could be applied for discounts on exceptional cases. The following code presents these two refactorings of the original ``discount/1`` function.
-
-  ```elixir
-  # After refactoring:
-
-  defmodule Order do
-    defstruct [date: nil, total: nil]
-
-    # new
-    def discount(%Order{date: d, total: t} = s) when d.day == 25 and d.month == 12 do
-      %Order{s | total: t * 0.1}
-    end
-
-    # original
-    def discount(%Order{total: t} = s) when t >= 100.0 do
-      %Order{s | total: t * 0.7}
-    end
-
-    # new
-    def discount(%Order{total: t} = s, value) do
-      %Order{s| total: t * value}
-    end
-
-  end
-  
-  #...Use examples...
-  iex(1)> Order.discount(%Order{total: 150.0, date: ~D[2022-12-25]}) 
-  %Order{date: ~D[2022-12-25], total: 15.0}  
-  
-  iex(2)> Order.discount(%Order{total: 150.0, date: ~D[2022-11-10]}) 
-  %Order{date: ~D[2022-11-10], total: 105.0}
-
-  iex(3)> Order.discount(%Order{total: 90.0, date: ~D[2022-10-18]}, 0.8) 
-  %Order{date: ~D[2022-10-18], total: 72.0}           
-  ```
+* __Examples:__ Take a look at the examples in [Transform to list comprehension](#transform-to-list-comprehension) and [Nested list functions to comprehension](#nested-list-functions-to-comprehension) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
 
 [▲ back to Index](#table-of-contents)
 ___
 
 ### From defensive-style programming to non-defensive style
 
-* __Category:__ Elixir-specific Refactorings*.
+* __Category:__ Elixir-specific Refactorings.
 
 * __Motivation:__ This refactoring helps to transform defensive-style error-handling code written in Elixir into supervised processes. This non-defensive style, also known as "Let it crash style", isolates error-handling code from business rule code in a system. When a process is supervised in a tree, it doesn't need to worry about error handling because if errors occur, its respective supervisor will monitor and restart it.
 
@@ -2210,7 +2693,7 @@ ___
 
 ### From meta to normal function application
 
-* __Category:__ Elixir-specific Refactorings*.
+* __Category:__ Elixir-specific Refactorings.
 
 * __Motivation:__ The function `apply/3` provided by the Elixir Kernel allows calling any function that has its source module, name, and parameter list defined at runtime. This refactoring allows replacing the use of the `apply/3` function with direct calls to functions that have modules, names, and parameter lists defined at compile time.
 
@@ -2233,73 +2716,9 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Remove import attributes
-
-* __Category:__ Traditional Refactoring.
-
-* __Motivation:__ The use of the `import` directive in a module allows calling functions defined in other modules without having to specify them directly in each call. While this can reduce the size of code, the use of `import` can also harm the readability of code, making it difficult to identify directly the source of a function being called. This refactoring allows removing the `import` directives in a module, replacing all calls to imported functions with the format `Module.function(args)`.
-
-* __Examples:__ The following code shows an example of this refactoring.
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule Bar do
-    def sum(v1, v2) do
-      v1 + v2
-    end
-  end
-
-  defmodule Foo do
-    import Bar  #<= to be removed!
-
-    def qux(value_1, value_2) do
-      sum(value_1, value_2)   #<= imported function!
-    end
-  end
-  
-  #...Use examples...
-  iex(1)> Foo.qux(1, 2) 
-  3
-  ```
-
-  ```elixir
-  # After refactoring:
-
-  defmodule Bar do
-    def sum(v1, v2) do
-      v1 + v2
-    end
-  end
-
-  defmodule Foo do
-    def qux(value_1, value_2) do
-      Bar.sum(value_1, value_2)   #<= calling with a fully-qualified name
-    end
-  end
-  
-  #...Use examples...
-  iex(1)> Foo.qux(1, 2) 
-  3
-  ```
-
-[▲ back to Index](#table-of-contents)
-___
-
-### Introduce import
-
-* __Category:__ Traditional Refactorings.
-
-* __Motivation:__ This refactoring is the inverse of [Remove import attributes](#remove-import-attributes). Recall that Remove import attributes allows you to remove `import` directives from a module, replacing all calls to imported functions with fully-qualified name calls (`Module.function(args)`). In contrast, Introduce import focuses on replacing fully-qualified name calls of functions from other modules with calls that use only the name of the imported functions.
-
-* __Examples:__ To better understand, take a look at the example in [Remove import attributes](#remove-import-attributes) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
-
-[▲ back to Index](#table-of-contents)
-___
-
 ### Remove unnecessary calls to length/1
 
-* __Category:__ Elixir-specific Refactorings*.
+* __Category:__ Elixir-specific Refactorings.
 
 * __Motivation:__ In Elixir, lists are always linked. Therefore, the cost of each `length/1` function call is not constant but proportional to the size of the list passed as a parameter. Considering that this cost can be high, many `length/1` calls can be unnecessary, making the code inefficient. This refactoring aims to replace these unnecessary calls, improving the efficiency of the code without modifying its behavior.
 
@@ -2409,418 +2828,9 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Widen or narrow definition scope
-
-* __Category:__ Functional Refactoring.
-
-* __Motivation:__ In Elixir, it is not possible to define nested named functions, however, it is possible to define a nested anonymous function (inside) of a named function. In this case, the anonymous function's scope is narrowed to the body of the named function where it was defined. This refactoring aims to widen or narrow a function's usage scope.
-
-* __Examples:__ The following code examples illustrate the widening of a function's scope. Prior to refactoring, the module `Foo` has the definition of the named function `bar/3`. Within this named function, we have the definition of the nested anonymous function `my_div/2`. Note that the scope of the `my_div/2` function is narrowed to the body of the `bar/3` function.
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule Foo do
-    def bar(v1, v2, v3) do
-      my_div = fn
-        (_, 0) -> {:error, "invalid!"}
-        (x, y) -> {:ok, x/y}
-      end
-
-      case my_div.(v1, v2) do
-        {:error, msg} -> msg
-        {:ok, value} -> value * v3
-      end
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.bar(10, 0, 5)
-  "invalid!"
-
-  iex(2)> Foo.bar(10, 2, 5)
-  25.0
-
-  iex(3)> my_div.(10, 2)
-  warning: variable "my_div" does not exist...
-  ** (CompileError) undefined function my_div/0...
-  ```
-
-  To widen the scope of the anonymous function `my_div/2`, we can transform it into a named function defined outside of `bar/3`. In addition, we must replace all calls to the anonymous function `my_div/2` with calls to the newly named function `my_div/2`, as shown below.
-
-  ```elixir
-  # After refactoring:
-
-  defmodule Foo do
-    def bar(v1, v2, v3) do
-      case my_div(v1, v2) do
-        {:error, msg} -> msg
-        {:ok, value} -> value * v3
-      end
-    end
-
-    # new multi-clause named function with widened scope!
-    def my_div(_, 0), do: {:error, "invalid!"}
-    def my_div(x, y), do: {:ok, x/y}
-  end
-
-  #...Use examples...
-  iex(1)> Foo.bar(10, 0, 5)
-  "invalid!"
-
-  iex(2)> Foo.bar(10, 2, 5)
-  25.0
-
-  iex(3)> Foo.my_div(10, 2)
-  {:ok, 5.0}
-
-  iex(4)> Foo.my_div(10, 0)
-  {:error, "invalid!"}
-  ```
-
-  Considering this example, to narrow the scope of `my_div/2`, we can perform the reverse refactoring, that is, `# After refactoring:` -> `# Before refactoring:`.
-
-[▲ back to Index](#table-of-contents)
-___
-
-### Group Case Branches
-
-* __Category:__ Traditional Refactoring.
-
-* __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. Specifically, this refactoring allows us to partition the branches of a ``case`` statement in a divide-and-conquer function into two categories: _(1)_ the base cases, and _(2)_ the recursive cases. This restructuring replaces the original ``case`` statement with four ``case`` statements.
-
-* __Examples:__ The following code examples illustrate a refactoring of the merge sort algorithm. Prior to the refactoring, the `merge_sort/1` function had only a single ``case`` statement to handle both the base case and the recursive case.
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule Foo do
-    def merge_sort(list) do
-      case list do
-        []  -> []
-        [h] -> [h]
-        _   ->  half = length(list) |> div(2)
-                right = merge_sort(Enum.take(list, half))
-                left = merge_sort(Enum.drop(list, half))
-                merge(right, left)
-      end
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.merge_sort([3, 20, 9, 2, 7, 99, 80, 30])
-  [2, 3, 7, 9, 20, 30, 80, 99]
-  ```
-
-  After refactoring, this ``case`` statement is replaced by four separate ``case`` statements, each with its respective role:
-
-  - _(1 and 2)_ Determine whether the instance is a base case (``true``) or a recursive case (``false``);
-
-  - _(3 and 4)_ Define which specific base case or recursive case we are dealing with, respectively.
-  
-  ```elixir
-  # After refactoring:
-
-  defmodule Foo do
-    def merge_sort(list) do
-      is_base = case list do        #<= role 1
-                  []    -> true
-                  [_h]  -> true
-                  _     -> false
-                end
-
-      case is_base do               #<= role 2
-        true  ->  case list do      #<= role 3
-                    []  -> []
-                    [h] -> [h]
-                  end
-        false ->  case list do      #<= role 4
-                    _   ->  half = length(list) |> div(2)
-                            right = merge_sort(Enum.take(list, half))
-                            left = merge_sort(Enum.drop(list, half))
-                            merge(right, left)
-                  end
-      end
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.merge_sort([3, 20, 9, 2, 7, 99, 80, 30])
-  [2, 3, 7, 9, 20, 30, 80, 99]
-  ```
-
-[▲ back to Index](#table-of-contents)
-___
-
-### Introduce Enum.map/2
-
-* __Category:__ Functional Refactoring.
-
-* __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. Specifically, this refactoring allows us to replace a list expression in which each element is generated by calling the same function with a call to the high-order function ``Enum.map/2``.
-
-* __Examples:__ The following code examples demonstrate this refactoring. Before the refactoring, the `bar/2` function generates a list composed of two lists sorted by the `merge_sort/1` function.
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule Foo do
-    def bar(list, list_2) do
-      [merge_sort(list), merge_sort(list_2)]
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.bar([1, 3, 9, 0, 2], [90, -5, 0, 10, 8])
-  [[0, 1, 2, 3, 9], [-5, 0, 8, 10, 90]]
-  ```
-
-  After refactoring, `bar/2` retains the same behavior, but now uses the `Enum.map/2` function to generate the elements of the returned list.
-  
-  ```elixir
-  # After refactoring:
-
-  defmodule Foo do
-    def bar(list, list_2) do
-      Enum.map([list, list_2], &merge_sort/1)
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.bar([1, 3, 9, 0, 2], [90, -5, 0, 10, 8])
-  [[0, 1, 2, 3, 9], [-5, 0, 8, 10, 90]]
-  ```
-
-  Note that this refactoring produces code that enables the application of [Transform to list comprehension](#transform-to-list-comprehension).
-
-[▲ back to Index](#table-of-contents)
-___
-
-### Bindings to List
-
-* __Category:__ Functional Refactoring.
-
-* __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. More precisely, this refactoring merges a series of match expressions into a single match expression that employs a list pattern.
-
-* __Examples:__ The following code examples demonstrate this refactoring. Before the refactoring, the `bar/2` function has a sequence of two match expressions that use the `merge_sort/1` function.
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule Foo do
-    def bar(list, list_2) do
-      e_1 = merge_sort(list)
-      e_2 = merge_sort(list_2)
-      
-      # do something with e_1 and e_2 ...
-    end
-  end
-  ```
-
-  After refactoring, `bar/2` retains the same behavior, but now uses a single match expression with a list pattern.
-  
-  ```elixir
-  # After refactoring:
-
-  defmodule Foo do
-    def bar(list, list_2) do
-      [e_1, e_2] = [merge_sort(list), merge_sort(list_2)]
-      
-      # do something with e_1 and e_2 ...
-    end
-  end
-  ```
-
-  Note that this refactoring produces code that enables the application of [Introduce Enum.map/2](#introduce-enummap2).
-
-[▲ back to Index](#table-of-contents)
-___
-
-## Move expression out of case
-
-* __Category:__ Traditional Refactoring.
-
-* __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. More precisely, this refactoring moves an expression outside of a `case` statement when it is repeated at the end of all branches.
-
-* __Examples:__ The following code examples demonstrate this refactoring. Before the refactoring, the `bar/2` function has a `case` statement with two branches. At the end of both branches, the expression `Integer.is_odd(value)` is repeated.
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule Foo do
-    def bar(confirm, list) do
-      case confirm do
-        true  ->  value = Enum.at(list, 0)
-                  Integer.is_odd(value)
-        false ->  value = Enum.at(list, length(list)-1)
-                  Integer.is_odd(value)
-      end
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.bar(true, [6, 5, 4, 3, 2, 1])
-  false
-
-  iex(2)> Foo.bar(false, [6, 5, 4, 3, 2, 1])
-  true
-  ```
-
-  After the refactoring, `bar/2` retains the same behavior, but now with the expression `Integer.is_odd(value)` moved outside the ``case`` statement.
-  
-  ```elixir
-  # After refactoring:
-
-  defmodule Foo do
-    def bar(confirm, list) do
-      value = case confirm do
-                true  ->  Enum.at(list, 0)
-                false ->  Enum.at(list, length(list)-1)
-              end
-      Integer.is_odd(value) #<= out of case!
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.bar(true, [6, 5, 4, 3, 2, 1])
-  false
-
-  iex(2)> Foo.bar(false, [6, 5, 4, 3, 2, 1])
-  true
-  ```
-
-[▲ back to Index](#table-of-contents)
-___
-
-## Function clauses to/from case clauses
-
-* __Category:__ Functional Refactoring.
-
-* __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. More precisely, this refactoring allows transforming a multi-clause function into a single-clause function, mapping function clauses into clauses of a ``case`` statement. The reverse can also occur, i.e., mapping a ``case`` statement clause into function clauses, thus transforming a single-clause function into a multi-clause function.
-
-* __Examples:__ The following code examples demonstrate this refactoring. Before the refactoring, the `merge_sort/1` function has three clauses, with two for its base cases and one for its recursive case.
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule Foo do
-    def merge_sort([]), do: []    #<= base case
-    def merge_sort([h]), do: [h]  #<= base case
-
-    def merge_sort(list) do       #<= recursive case
-      half = length(list) |> div(2)
-      right = merge_sort(Enum.take(list, half))
-      left = merge_sort(Enum.drop(list, half))
-      merge(right, left)
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.merge_sort([3, 20, 9, 2, 7, 99, 80, 30])
-  [2, 3, 7, 9, 20, 30, 80, 99]
-  ```
-
-  After the refactoring, `merge_sort/1` retains the same behavior, but now having only one clause, since both its base cases and recursive case were mapped into clauses of a `case` statement.
-  
-  ```elixir
-  # After refactoring:
-
-  defmodule Foo do
-    def merge_sort(list) do
-      case list do
-        []  -> []
-        [h] -> [h]
-        _   ->  half = length(list) |> div(2)
-                right = merge_sort(Enum.take(list, half))
-                left = merge_sort(Enum.drop(list, half))
-                merge(right, left)
-      end
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.merge_sort([3, 20, 9, 2, 7, 99, 80, 30])
-  [2, 3, 7, 9, 20, 30, 80, 99]
-  ```
-
-  Note that this refactoring example could also be done in reverse order, that is, `# After refactoring:` -> `# Before refactoring:`.
-
-[▲ back to Index](#table-of-contents)
-___
-
-## Transform a body-recursive function to a tail-recursive
-
-* __Category:__ Functional Refactoring*.
-
-* __Motivation:__ In Erlang and Elixir, there are two common styles for writing recursive functions: body-recursion and tail-recursion. Body-recursion allows for the recursive call to occur anywhere within the function body, while tail-recursion specifies that the recursive call must be the last operation performed before returning. To implement a tail-recursive function, an accumulating parameter is often used to store the intermediate results of the computation. When a tail-recursive function calls itself, the Erlang VM can perform a clever optimization technique known as tail-call optimization. This means that the function can continue without waiting for its recursive call to return. This optimization can enhance code parallelization and lead to more efficient code. To take advantage of the tail-call optimization provided by the Erlang VM, this refactoring aims to convert a body-recursive function into a tail-recursive one.
-
-* __Examples:__ The code examples below illustrate this refactoring. Prior to the refactoring, the `sum_list_elements/1` function uses body-recursion to sum all elements in a list.
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule Foo do
-    def sum_list_elements([]), do: 0
-
-    def sum_list_elements([head | tail]) do
-      sum_list_elements(tail) + head
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.sum_list_elements([1, 2, 3, 4, 5, 6])
-  21
-  ```
-
-  Following the refactoring, `sum_list_elements/1` retains the same behavior but now uses tail-recursion to sum all elements in a list. Note that a private recursive function `do_sum_list_elements/2` was created to support this refactoring.
-  
-  ```elixir
-  # After refactoring:
-
-  defmodule Foo do
-    def sum_list_elements(list) do
-      do_sum_list_elements(list, 0)
-    end
-
-    defp do_sum_list_elements([], sum), do: sum
-
-    defp do_sum_list_elements([head | tail], sum) do
-      do_sum_list_elements(tail, sum + head)
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.sum_list_elements([1, 2, 3, 4, 5, 6])
-  21
-  ```
-
-  The following code can be used to compare the performance of the two solutions. In this code, the `sum_list_elements/1` function has illustrative names `before_ref/1` and `after_ref/1` to represent their respective body-recursive and tail-recursive versions.
-
-  ```elixir
-  defp time(func, args) do
-    t_0 = Time.utc_now()
-    func.(args)
-    Time.diff(Time.utc_now(), t_0, :millisecond)
-  end
-
-  def compare(list \\ Enum.to_list(1..1_000_000)) do
-    IO.puts("Body recursive: #{time(&before_ref/1, list)} millisecond(s)")
-    IO.puts("Tail recursive: #{time(&after_ref/1, list)} millisecond(s)")
-  end
-
-  #...Use examples...
-  iex(1)> Foo.compare()
-  Body recursive: 44 millisecond(s)
-  Tail recursive: 4 millisecond(s)
-  ```
-
-  Note that for a list with one million elements, the tail-recursive version was up to 10 times faster than the body-recursive version.
-
-[▲ back to Index](#table-of-contents)
-___
-
 ## Introduce/remove concurrency
 
-* __Category:__ Elixir-Specific Refactoring*.
+* __Category:__ Elixir-Specific Refactorings.
 
 * __Motivation:__ This refactoring involves introducing or removing concurrent processes to achieve a more optimal mapping between parallel processes and parallel activities of the problem being solved.
 
@@ -2831,7 +2841,7 @@ ___
 
 ## Add a tag to messages
 
-* __Category:__ Elixir-Specific Refactoring*.
+* __Category:__ Elixir-Specific Refactorings*.
 
 * __Motivation:__ In Elixir, processes run in an isolated manner, often concurrently with others. Communication between different processes is performed through message passing. This refactoring aims to adapt processes that communicate with each other by adding tags that identify groups of messages exchanged between them. This identification allows for different treatments of received messages based on their purpose or format.
 
@@ -2955,7 +2965,7 @@ ___
 
 ## Register a process
 
-* __Category:__ Elixir-Specific Refactoring*.
+* __Category:__ Elixir-Specific Refactorings*.
 
 * __Motivation:__ In Elixir, processes run in an isolated manner, often concurrently with others. Communication between different processes is performed through message passing. This refactoring involves assigning a user-defined name to a process ID and using that user-defined name instead of the process ID in message passing. Any process in an Elixir system can communicate with a registered process even without knowing its ID.
 
