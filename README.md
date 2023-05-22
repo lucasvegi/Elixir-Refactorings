@@ -48,7 +48,7 @@
   * [Bindings to List](#bindings-to-list)
   * [Function clauses to/from case clauses](#function-clauses-tofrom-case-clauses)
   * [Transform a body-recursive function to a tail-recursive](#transform-a-body-recursive-function-to-a-tail-recursive)
-* __[Elixir-Specific Refactorings](#elixir-specific-refactorings)__
+* __[Erlang-Specific Refactorings](#erlang-specific-refactorings)__
   * [Generate function specification](#generate-function-specification)
   * [Transform to list comprehension](#transform-to-list-comprehension)
   * [Nested list functions to comprehension](#nested-list-functions-to-comprehension)
@@ -67,7 +67,7 @@
 
 [Elixir][Elixir] is a functional programming language whose popularity is on the rise in the industry <sup>[link][ElixirInProduction]</sup>. As no known studies have explored refactoring strategies for code implemented with this language, we reviewed scientific literature seeking refactoring strategies in other functional languages or languages that inspired the creation of Elixir (e.g., Ruby). The found refactorings were analyzed, filtering only those directly compatible or that could be adapted for Elixir code.
 
-As a result of this investigation, we have proposed a catalog of 54 refactorings for Elixir systems. These refactorings are categorized into three different groups ([traditional](#traditional-refactorings), [functional](#functional-refactorings), and [Elixir-specific](#elixir-specific-refactorings)), according to the programming resources required in code transformations. This catalog of Elixir refactorings is presented below. Each refactoring is documented using the following structure:
+As a result of this investigation, we have proposed a catalog of 54 refactorings for Elixir systems. These refactorings are categorized into three different groups ([traditional](#traditional-refactorings), [functional](#functional-refactorings), and [Erlang-specific](#erlang-specific-refactorings)), according to the programming features required in code transformations. This catalog of Elixir refactorings is presented below. Each refactoring is documented using the following structure:
 
 * __Name:__ Unique identifier of the refactoring. This name is important to facilitate communication between developers;
 * __Category:__ Scope of refactoring in relation to its application coverage;
@@ -86,7 +86,7 @@ Please feel free to make pull requests and suggestions ([Issues][Issues] tab). W
 
 ## Traditional Refactorings
 
-Traditional refactorings are those mainly based on Fowler's catalog or that use programming resources independent of languages or paradigms. In this section, 24 different refactorings classified as traditional are explained and exemplified:
+Traditional refactorings are those mainly based on Fowler's catalog or that use programming features independent of languages or paradigms. In this section, 24 different refactorings classified as traditional are explained and exemplified:
 
 ### Rename an identifier
 
@@ -1455,15 +1455,15 @@ ___
 
 ## Functional Refactorings
 
-Functional refactorings are those that use programming resources characteristic of functional languages, such as pattern matching and high-order functions. In this section, 19 different refactorings classified as functional are explained and exemplified:
+Functional refactorings are those that use programming features characteristic of functional languages, such as pattern matching and higher-order functions. In this section, 19 different refactorings classified as functional are explained and exemplified:
 
 ### Generalise a function definition
 
 * __Category:__ Functional Refactorings.
 
-* __Motivation:__ This refactoring helps to eliminate the [Duplicated Code][Duplicated Code] code smell. In any programming language, this code smell can make the codebase harder to maintain due to restrictions on code reuse. When different functions have equivalent expression structures, that structure should be generalized into a new function, which will later be called in the body of the duplicated functions, replacing their original codes. After that refactoring, the programmer only needs to worry about maintaining these expressions in one place (generic function). The support for ``high-order functions`` in functional programming languages enhances the potential for generalizing provided by this refactoring.
+* __Motivation:__ This refactoring helps to eliminate the [Duplicated Code][Duplicated Code] code smell. In any programming language, this code smell can make the codebase harder to maintain due to restrictions on code reuse. When different functions have equivalent expression structures, that structure should be generalized into a new function, which will later be called in the body of the duplicated functions, replacing their original codes. After that refactoring, the programmer only needs to worry about maintaining these expressions in one place (generic function). The support for ``higher-order functions`` in functional programming languages enhances the potential for generalizing provided by this refactoring.
 
-* __Examples:__ In Elixir, as well as in other functional languages such as Erlang and Haskell, functions are considered as first-class citizens. This means that functions can be assigned to variables, allowing the definition of ``higher-order functions``. Higher-order functions are those that take one or more functions as arguments or return a function as a result. The following code illustrates this refactoring using a ``high-order function``. Before the refactoring, we have two functions in the ``Gen`` module. The ``foo/1`` function takes a list as an argument and transforms it in two steps. First, it squares each of its elements and then multiplies each element by 3, returning a new list. The ``bar/1`` function operates similarly, receiving a list as an argument and also transforming it in two steps. First, it doubles the value of each element in the list and then returns a list containing only the elements divisible by 4. Although these two functions transform lists in different ways, they have duplicated structures.
+* __Examples:__ In Elixir, as well as in other functional languages such as Erlang and Haskell, functions are considered as first-class citizens. This means that functions can be assigned to variables, allowing the definition of ``higher-order functions``. Higher-order functions are those that take one or more functions as arguments or return a function as a result. The following code illustrates this refactoring using a ``higher-order function``. Before the refactoring, we have two functions in the ``Gen`` module. The ``foo/1`` function takes a list as an argument and transforms it in two steps. First, it squares each of its elements and then multiplies each element by 3, returning a new list. The ``bar/1`` function operates similarly, receiving a list as an argument and also transforming it in two steps. First, it doubles the value of each element in the list and then returns a list containing only the elements divisible by 4. Although these two functions transform lists in different ways, they have duplicated structures.
 
   ```elixir
   # Before refactoring:
@@ -1492,7 +1492,7 @@ Functional refactorings are those that use programming resources characteristic 
   [4, 8]
   ```
 
-  We want to generalize the functions ``foo/1`` and ``bar/1``. To do so, we must create a new function ``generic/4`` and replace the bodies of ``foo/1`` and ``bar/1`` with calls to ``generic/4``. Note that ``generic/4`` is a *__high-order function__*, since its last three arguments are functions that are called only within its body. Due to the use of high-order functions in this refactoring, we were able to create a smaller and easier-to-maintain new function than would be if we did not use this functional programming feature.
+  We want to generalize the functions ``foo/1`` and ``bar/1``. To do so, we must create a new function ``generic/4`` and replace the bodies of ``foo/1`` and ``bar/1`` with calls to ``generic/4``. Note that ``generic/4`` is a *__higher-order function__*, since its last three arguments are functions that are called only within its body. Due to the use of higher-order functions in this refactoring, we were able to create a smaller and easier-to-maintain new function than would be if we did not use this functional programming feature.
 
   ```elixir
   # After refactoring:
@@ -2287,7 +2287,7 @@ ___
 
 * __Category:__ Functional Refactorings.
 
-* __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. Specifically, this refactoring allows us to replace a list expression in which each element is generated by calling the same function with a call to the high-order function ``Enum.map/2``.
+* __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. Specifically, this refactoring allows us to replace a list expression in which each element is generated by calling the same function with a call to the higher-order function ``Enum.map/2``.
 
 * __Examples:__ The following code examples demonstrate this refactoring. Before the refactoring, the `bar/2` function generates a list composed of two lists sorted by the `merge_sort/1` function.
 
@@ -2493,13 +2493,13 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-## Elixir-Specific Refactorings
+## Erlang-Specific Refactorings
 
-Elixir-specific refactorings are those that use programming resources exclusive to Elixir or the Erlang ecosystem (e.g., OTP). In this section, 11 different refactorings classified as Elixir-specific are explained and exemplified:
+Erlang-specific refactorings are those that use programming features unique to the Erlang ecosystem (e.g., OTP, typespecs, and behaviours). In this section, 11 different refactorings classified as Erlang-specific are explained and exemplified:
 
 ### Generate function specification
 
-* __Category:__ Elixir-specific Refactorings*.
+* __Category:__ Erlang-specific Refactorings*.
 
 * __Motivation:__ Despite being a dynamically-typed language, Elixir offers a feature to compensate for the lack of a static type system. By using ``Typespecs``, we can specify the types of each function parameter and of the return value. Utilizing this Elixir feature not only improves documentation, but also can enhance code readability and prepare it to be analyzed for tools like [Dialyzer][Dialyzer], enabling the detection of type inconsistencies, and potential bugs. The goal of this refactoring is simply to use ``Typespecs`` in a function to promote the aforementioned benefits of using this feature.
 
@@ -2568,9 +2568,9 @@ ___
 
 ### Transform to list comprehension
 
-* __Category:__ Elixir-specific Refactorings*.
+* __Category:__ Erlang-specific Refactorings*.
 
-* __Motivation:__ Elixir, like Erlang, provides several built-in ``high-order functions`` capable of taking lists as parameters and returning new lists modified from the original. In Elixir, ``Enum.map/2`` takes a list and an anonymous function as parameters, creating a new list composed of each element of the original list with values altered by applying the anonymous function. On the other hand, the function ``Enum.filter/2`` also takes a list and an anonymous function as parameters but creates a new list composed of elements from the original list that pass the filter established by the anonymous function. A list comprehension is another syntactic construction capable to create a list based on existing ones. This feature is based on the mathematical notation for defining sets and is very common in functional languages such as Haskell, Erlang, Clojure, and Elixir. This refactoring aims to transform calls to ``Enum.map/2`` and ``Enum.filter/2`` into list comprehensions, creating a semantically equivalent code that can be more declarative and easy to read.
+* __Motivation:__ Elixir, like Erlang, provides several built-in ``higher-order functions`` capable of taking lists as parameters and returning new lists modified from the original. In Elixir, ``Enum.map/2`` takes a list and an anonymous function as parameters, creating a new list composed of each element of the original list with values altered by applying the anonymous function. On the other hand, the function ``Enum.filter/2`` also takes a list and an anonymous function as parameters but creates a new list composed of elements from the original list that pass the filter established by the anonymous function. A list comprehension is another syntactic construction capable to create a list based on existing ones. This feature is based on the mathematical notation for defining sets and is very common in functional languages such as Haskell, Erlang, Clojure, and Elixir. This refactoring aims to transform calls to ``Enum.map/2`` and ``Enum.filter/2`` into list comprehensions, creating a semantically equivalent code that can be more declarative and easy to read.
 
 * __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we are using ``Enum.map/2`` to create a new list containing the elements of the original list squared. Furthermore, we are using ``Enum.filter/2`` to create a new list containing only the even numbers present in the original list.
 
@@ -2601,7 +2601,7 @@ ___
 
 ### Nested list functions to comprehension
 
-* __Category:__ Elixir-specific Refactorings*.
+* __Category:__ Erlang-specific Refactorings*.
 
 * __Motivation:__ This refactoring is a specific instance of [Transform to list comprehension](#transform-to-list-comprehension). When ``Enum.map/2`` and ``Enum.filter/2`` are used in a nested way to generate a new list, the code readability is compromised, and we also have an inefficient code, since the original list can be visited more than once and an intermediate list needs to be built. This refactoring, also referred to as ``deforestation``, aims to transform nested calls to ``Enum.map/2`` and ``Enum.filter/2`` into a list comprehension, creating a semantically equivalent code that can be more readable and more efficient.
 
@@ -2628,7 +2628,7 @@ ___
 
 ### List comprehension simplifications
 
-* __Category:__ Elixir-specific Refactorings*.
+* __Category:__ Erlang-specific Refactorings*.
 
 * __Motivation:__ This refactoring is the inverse of [Transform to list comprehension](#transform-to-list-comprehension) and [Nested list functions to comprehension](#nested-list-functions-to-comprehension). We can apply this refactoring to existing list comprehensions in the Elixir codebase, transforming them into semantically equivalent calls to the functions ``Enum.map/2`` or ``Enum.filter/2``.
 
@@ -2639,7 +2639,7 @@ ___
 
 ### From defensive-style programming to non-defensive style
 
-* __Category:__ Elixir-specific Refactorings.
+* __Category:__ Erlang-specific Refactorings.
 
 * __Motivation:__ This refactoring helps to transform defensive-style error-handling code written in Elixir into supervised processes. This non-defensive style, also known as "Let it crash style", isolates error-handling code from business rule code in a system. When a process is supervised in a tree, it doesn't need to worry about error handling because if errors occur, its respective supervisor will monitor and restart it.
 
@@ -2693,7 +2693,7 @@ ___
 
 ### From meta to normal function application
 
-* __Category:__ Elixir-specific Refactorings.
+* __Category:__ Erlang-specific Refactorings.
 
 * __Motivation:__ The function `apply/3` provided by the Elixir Kernel allows calling any function that has its source module, name, and parameter list defined at runtime. This refactoring allows replacing the use of the `apply/3` function with direct calls to functions that have modules, names, and parameter lists defined at compile time.
 
@@ -2718,7 +2718,7 @@ ___
 
 ### Remove unnecessary calls to length/1
 
-* __Category:__ Elixir-specific Refactorings.
+* __Category:__ Erlang-specific Refactorings.
 
 * __Motivation:__ In Elixir, lists are always linked. Therefore, the cost of each `length/1` function call is not constant but proportional to the size of the list passed as a parameter. Considering that this cost can be high, many `length/1` calls can be unnecessary, making the code inefficient. This refactoring aims to replace these unnecessary calls, improving the efficiency of the code without modifying its behavior.
 
@@ -2767,7 +2767,7 @@ ___
 
 ### Add type declarations and contracts
 
-* __Category:__ Elixir-specific Refactorings*.
+* __Category:__ Erlang-specific Refactorings*.
 
 * __Motivation:__ Despite being a dynamically-typed language, Elixir offers a feature to compensate for the lack of a static type system. By using ``Typespecs``, we can specify the types of each function parameter and of the return value. Utilizing this Elixir feature not only improves documentation, but also can enhance code readability and prepare it to be analyzed for tools like [Dialyzer][Dialyzer], enabling the detection of type inconsistencies, and potential bugs. The goal of this refactoring is to use `Typespecs` to create custom data types, thereby naming recurring data structures in the codebase and increasing system readability.
 
@@ -2830,7 +2830,7 @@ ___
 
 ## Introduce/remove concurrency
 
-* __Category:__ Elixir-Specific Refactorings.
+* __Category:__ Erlang-Specific Refactorings.
 
 * __Motivation:__ This refactoring involves introducing or removing concurrent processes to achieve a more optimal mapping between parallel processes and parallel activities of the problem being solved.
 
@@ -2841,7 +2841,7 @@ ___
 
 ## Add a tag to messages
 
-* __Category:__ Elixir-Specific Refactorings*.
+* __Category:__ Erlang-Specific Refactorings*.
 
 * __Motivation:__ In Elixir, processes run in an isolated manner, often concurrently with others. Communication between different processes is performed through message passing. This refactoring aims to adapt processes that communicate with each other by adding tags that identify groups of messages exchanged between them. This identification allows for different treatments of received messages based on their purpose or format.
 
@@ -2965,7 +2965,7 @@ ___
 
 ## Register a process
 
-* __Category:__ Elixir-Specific Refactorings*.
+* __Category:__ Erlang-Specific Refactorings*.
 
 * __Motivation:__ In Elixir, processes run in an isolated manner, often concurrently with others. Communication between different processes is performed through message passing. This refactoring involves assigning a user-defined name to a process ID and using that user-defined name instead of the process ID in message passing. Any process in an Elixir system can communicate with a registered process even without knowing its ID.
 
