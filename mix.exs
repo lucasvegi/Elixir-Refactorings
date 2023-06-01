@@ -44,7 +44,7 @@ defmodule ElixirRefactoringsCatalog.Mixfile do
   defp package do
     [
       name: :elixir_refactorings_catalog,
-      maintainers: ["Lucas Vegi", "Marco Tulio Valente"],
+      maintainers: ["XX", "XX"],
       licenses: ["MIT-License"],
       links: %{
         "GitHub" => @source_url
