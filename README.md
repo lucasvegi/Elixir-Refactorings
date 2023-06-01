@@ -3000,7 +3000,7 @@ ___
 
 ## About
 
-This catalog was proposed by <!--Lucas Vegi and Marco Tulio Valente-->, from <!--[ASERG/DCC/UFMG][ASERG]-->.
+This catalog was proposed by <!--XX and XX-->, from <!--[XXXXX/XXX/XXXX][XXXXX]-->.
 
 Please feel free to make pull requests and suggestions ([Issues][Issues] tab).
 
@@ -3015,7 +3015,7 @@ We are supported by __[Finbits][Finbits]__<sup>TM</sup>, a Brazilian Elixir-base
   <br><br>
 </div>
 
-<!-- Our research is also part of the initiative called __[Research with Elixir][ResearchWithElixir]__ (in portuguese). -->
+<!-- Our research is also part of the initiative called __[XX][XX]__ (in portuguese). -->
 
 [▲ back to Index](#table-of-contents)
 
