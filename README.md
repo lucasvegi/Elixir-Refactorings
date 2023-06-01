@@ -16,9 +16,6 @@
   * [Temporary variable elimination](#temporary-variable-elimination)
   * [Merge expressions](#merge-expressions)
   * [Splitting a large module](#splitting-a-large-module)
-  * [Behaviour extraction](#behaviour-extraction)
-  * [Behaviour inlining](#behaviour-inlining)
-  * [Eliminate single branch](#eliminate-single-branch)
   * [Simplifying nested conditional statements](#simplifying-nested-conditional-statements)
   * [Move file](#move-file)
   * [Remove dead code](#remove-dead-code)
@@ -48,11 +45,12 @@
   * [Bindings to List](#bindings-to-list)
   * [Function clauses to/from case clauses](#function-clauses-tofrom-case-clauses)
   * [Transform a body-recursive function to a tail-recursive](#transform-a-body-recursive-function-to-a-tail-recursive)
-* __[Erlang-Specific Refactorings](#erlang-specific-refactorings)__
-  * [Generate function specification](#generate-function-specification)
+  * [Eliminate single branch](#eliminate-single-branch)
   * [Transform to list comprehension](#transform-to-list-comprehension)
   * [Nested list functions to comprehension](#nested-list-functions-to-comprehension)
   * [List comprehension simplifications](#list-comprehension-simplifications)
+* __[Erlang-Specific Refactorings](#erlang-specific-refactorings)__
+  * [Generate function specification](#generate-function-specification)
   * [From defensive-style programming to non-defensive style](#from-defensive-style-programming-to-non-defensive-style)
   * [From meta to normal function application](#from-meta-to-normal-function-application)
   * [Remove unnecessary calls to length/1](#remove-unnecessary-calls-to-length1)
@@ -60,6 +58,8 @@
   * [Introduce/remove concurrency](#introduceremove-concurrency)
   * [Add a tag to messages](#add-a-tag-to-messages)
   * [Register a process](#register-a-process)
+  * [Behaviour extraction](#behaviour-extraction)
+  * [Behaviour inlining](#behaviour-inlining)
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
@@ -86,7 +86,7 @@ Please feel free to make pull requests and suggestions ([Issues][Issues] tab). W
 
 ## Traditional Refactorings
 
-Traditional refactorings are those mainly based on Fowler's catalog or that use programming features independent of languages or paradigms. In this section, 24 different refactorings classified as traditional are explained and exemplified:
+Traditional refactorings are those mainly based on Fowler's catalog or that use programming features independent of languages or paradigms. In this section, 21 different refactorings classified as traditional are explained and exemplified:
 
 ### Rename an identifier
 
@@ -845,188 +845,6 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Behaviour extraction
-
-* __Category:__ Traditional Refactorings*.
-
-* __Motivation:__ This refactoring is similar to Extract Interface, proposed by Fowler and Beck for object-oriented languages. In Elixir, a ``behaviour`` serves as an interface, which is a contract that a module can fulfill by implementing functions in a guided way according to the formats of parameters and return types defined in the contract. A ``behaviour`` is an abstraction that defines only the functionality to be implemented, but not how that functionality is implemented. When we find a function that can be repeated in different modules, but performing special roles in each of them, it can be a good idea to abstract this function by extracting it to a ``behaviour``, standardizing a contract to be followed by all modules that implement or may implement it in the future.
-
-* __Examples:__ The following code example illustrates the use of this refactoring technique. In this case, the module ``Foo`` has two functions. The function ``print_result/2`` has a generic behavior, that is, it simply displays the result of an operation. On the other hand, the function ``math_operation/2`` has a special role in this module, which is to attempt to sum two numbers and return a tuple that may have the operation's result or an error if invalid parameters are passed to the function call.
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule Foo do
-    def math_operation(a, b) when is_number(a) and is_number(b) do
-      {:ok, a + b}
-    end
-    def math_operation(_, _), do: {:error, "args not numeric"}
-
-    def print_result(a, b) do
-      {_, r} = math_operation(a, b)
-      IO.puts("Operation result: #{r}")
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.math_operation(1, 2)   
-  {:ok, 3}
-  
-  iex(2)> Foo.math_operation(1, "jose")
-  {:error, "args not numeric"}
-  
-  iex(3)> Foo.print_result(1, 2)        
-  Operation results: 3
-  ```
-
-  Although this is a simple example, note that ``math_operation/2`` could eventually be implemented in other modules to perform different special roles, such as division, multiplication, subtraction, etc. With that in mind, we can standardize a contract for ``math_operation/2``, guiding developers to follow the same format every time this function is implemented in the codebase. To do so, this refactoring will transform ``Foo`` into a behaviour definition by creating a ``@callback`` that defines the format of ``math_operation/2``. In addition, using [Moving a definition](#moving-a-definition), we will move ``math_operation/2`` to a new module called ``Sum``, updating all previous calls to ``math_operation/2``. Finally, ``Sum`` should explicitly implement the contract defined by ``Foo`` using the ``@behaviour`` definition.
-  
-  ```elixir
-  # After refactoring:
-
-  defmodule Foo do
-    # behaviour definition
-    @callback math_operation(a :: any(), b :: any()) :: {atom(), any()} 
-
-    def print_result(a, b) do
-      {_, r} = Sum.math_operation(a, b) # <- new refactoring opportunity!
-      IO.puts("Operation result: #{r}")
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.print_result(1, 2)      
-  Operation result: 3
-  ```
-
-  ```elixir
-  # After refactoring:
-
-  defmodule Sum do
-    @behaviour Foo  #<- behaviour implementation
-
-    @impl Foo       #<- behaviour implementation
-    def math_operation(a, b) when is_number(a) and is_number(b) do
-      {:ok, a + b}
-    end
-    def math_operation(_, _), do: {:error, "args not numeric"}
-  end
-
-  #...Use examples...
-  iex(1)> Sum.math_operation(1, 2)
-  {:ok, 3}
-  
-  iex(2)> Sum.math_operation(1, "Jose")
-  {:error, "args not numeric"}
-  ```
-
-  After this refactoring, the module ``Foo`` acts as the ``behaviour definition`` and the module ``Sum`` as the ``behaviour instance``. This refactoring is highly valuable since behaviour constructs allow static code analysis tools such as [Dialyzer][Dialyzer] to have a better understanding of the code, offer useful recommendations, and detect potential issues.
-  
-  __Recalling previous refactorings:__ Although this refactoring was successfully completed, note that it created a new opportunity for refactoring in the function ``Foo.print_result/2``. The first line of this function remained with a hard-coded call to ``Sum.math_operation/2``, which is an implementation of the ``@callback`` defined in the behaviour. Imagine that in the future the module ``Subtraction``, which also implements the ``Foo`` behaviour, is created:
-
-  ```elixir
-  defmodule Subtraction do
-    @behaviour Foo  #<- behaviour implementation
-
-    @impl Foo       #<- behaviour implementation
-    def math_operation(a, b) when is_number(a) and is_number(b) do
-      {:ok, a - b}
-    end
-    def math_operation(_, _), do: {:error, "args not numeric"}
-  end
-  ```
-
-  To make ``Foo.print_result/2`` able to display the results of any possible implementation of the ``Foo`` behaviour (e.g. ``Sum`` and ``Subtraction``), we can apply [Generalise a function definition](#generalise-a-function-definition) to it, resulting in the following code:
-
-  ```elixir
-  defmodule Foo do
-    @callback math_operation(a :: any(), b :: any()) :: {atom(), any()}
-
-    def print_result(a, b, math_operation) do
-      {_, r} = math_operation.(a, b)                #<- generalised!
-      IO.puts("Operation result: #{r}")
-    end
-  end
-
-  #...Use examples...
-  iex(1)> Foo.print_result(1, 2, &Sum.math_operation/2)        
-  Operation result: 3
-
-  iex(2)> Foo.print_result(1, 2, &Subtraction.math_operation/2)
-  Operation result: -1
-  ```
-  
-  These examples are based on Erlang code written in this paper: [[1]](https://dl.acm.org/doi/10.1145/3064899.3064909)
-  
-[▲ back to Index](#table-of-contents)
-___
-
-### Behaviour inlining
-
-* __Category:__ Traditional Refactorings*.
-
-* __Motivation:__ This refactoring is the inverse of [Behaviour extraction](#behaviour-extraction). Remembering, behaviour extraction aims to define a callback to compose a standardized interface for a function in a module that acts as a ``behaviour definition`` and move the existing version of that function to another module that follows this standardization, implementing the callback (``behaviour instance``). In contrast, Behaviour inlining aims to eliminate the implementations of callbacks in a ``behaviour instance``.
-
-* __Examples:__ To perform this elimination, the function that implements a callback in a ``behaviour instance`` is moved to the ``behaviour definition`` module using [Moving a definition](#moving-a-definition), which will handle possible naming conflicts and update references to that function. If the moved function was the only callback implemented by the ``behaviour instance`` module, the definition of the implemented behaviour (``@behaviour``) should be removed the ``behaviour instance``, thus turning it into a regular module. Additionally, when the moved function is the last existing implementation of the callback throughout the codebase, this callback should cease to exist, being removed from the ``behaviour definition`` module.
-  
-  To better understand, take a look at the example in [Behaviour extraction](#behaviour-extraction) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
-
-[▲ back to Index](#table-of-contents)
-___
-
-### Eliminate single branch
-
-* __Category:__ Traditional Refactoring*.
-
-* __Motivation:__ This refactoring aims to simplify the code by eliminating control statements that have only one possible flow.
-
-* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a function ``qux/1`` with a ``case`` statement that has only one branch. When the pattern matching of this single branch does not occur, this function raises a ``CaseClauseError``.
-
-  ```elixir
-  # Before refactoring:
-
-  defmodule Foo do
-    def qux(value) do
-      case value do
-        {:ok, v1, v2} ->
-          (v1 + v1) * v2
-      end
-    end
-  end
-  
-  #...Use examples...
-  iex(1)> Foo.qux({:ok, 2, 4})
-  16
-
-  iex(2)> Foo.qux({:error, 2, 4})
-  ** (CaseClauseError) no case clause matching: {:error, 2, 4}
-  ```
-
-  As shown in the following code, we can simplify this code by replacing the ``case`` statement with the code that would be executed by their single branch.
-
-  ```elixir
-  # After refactoring:
-
-  defmodule Foo do 
-    def qux(value) do
-      {:ok, v1, v2} = value
-      (v1 + v1) * v2
-    end
-  end
-  
-  #...Use examples...
-  iex(1)> Foo.qux({:ok, 2, 4}) 
-  16
-
-  iex(2)> Foo.qux({:error, 2, 4})
-  ** (MatchError) no match of right hand side value: {:error, 2, 4}                   
-  ```
-
-  Note that the only behavioral difference between the original and refactored code is that a different error is raised when the pattern matching does not occur (i.e., ``MatchError``). This could be compensated for by using the error-handling mechanism of Elixir, as shown in [Converts guards to conditionals](#converts-guards-to-conditionals).
-
-[▲ back to Index](#table-of-contents)
-___
-
 ### Simplifying nested conditional statements
 
 * __Category:__ Traditional Refactoring.
@@ -1455,7 +1273,7 @@ ___
 
 ## Functional Refactorings
 
-Functional refactorings are those that use programming features characteristic of functional languages, such as pattern matching and higher-order functions. In this section, 19 different refactorings classified as functional are explained and exemplified:
+Functional refactorings are those that use programming features characteristic of functional languages, such as pattern matching and higher-order functions. In this section, 23 different refactorings classified as functional are explained and exemplified:
 
 ### Generalise a function definition
 
@@ -1797,7 +1615,7 @@ ___
 
 ### Transforming list appends and subtracts
 
-* __Category:__ Functional Refactorings*.
+* __Category:__ Functional Refactorings.
 
 * __Motivation:__ This is a refactoring that can make the code shorter and even more readable. Elixir's ``Enum`` module provides native functions to append an element to the end of a list (``concat/2``) and to subtract elements (``reject/2``) from a list. Although these functions serve their purposes well, Elixir also has specific operators equivalent to these functions, allowing the code to be simplified. This refactoring aims to transform calls to the ``Enum.concat/2`` and ``Enum.reject/2`` functions into uses of the ``Kernel.++/2`` and ``Kernel.--/2`` operators, respectively.
 
@@ -1830,7 +1648,7 @@ ___
 
 ### From tuple to struct
 
-* __Category:__ Functional Refactorings*.
+* __Category:__ Functional Refactorings.
 
 * __Motivation:__ In Elixir, as well as in other functional languages like Erlang and Haskell, tuples are one of the most commonly used data structures. They are typically used to group a small and fixed amount of values. Although they are very useful, using tuples can make code less readable, as some details of the data representation are exposed in the code due to the inability to name the elements that compose a tuple. This refactoring aims to transform tuples into structs, which are data structures that allow naming their fields, thus providing a more abstract interface for the data and improving the code readability.
 
@@ -2424,7 +2242,7 @@ ___
 
 ## Transform a body-recursive function to a tail-recursive
 
-* __Category:__ Functional Refactorings*.
+* __Category:__ Functional Refactorings.
 
 * __Motivation:__ In Erlang and Elixir, there are two common styles for writing recursive functions: body-recursion and tail-recursion. Body-recursion allows for the recursive call to occur anywhere within the function body, while tail-recursion specifies that the recursive call must be the last operation performed before returning. To implement a tail-recursive function, an accumulating parameter is often used to store the intermediate results of the computation. When a tail-recursive function calls itself, the Erlang VM can perform a clever optimization technique known as tail-call optimization. This means that the function can continue without waiting for its recursive call to return. This optimization can enhance code parallelization and lead to more efficient code. To take advantage of the tail-call optimization provided by the Erlang VM, this refactoring aims to convert a body-recursive function into a tail-recursive one.
 
@@ -2493,13 +2311,137 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
+### Eliminate single branch
+
+* __Category:__ Functional Refactoring.
+
+* __Motivation:__ This refactoring aims to simplify the code by eliminating control statements that have only one possible flow.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a function ``qux/1`` with a ``case`` statement that has only one branch. When the pattern matching of this single branch does not occur, this function raises a ``CaseClauseError``.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def qux(value) do
+      case value do
+        {:ok, v1, v2} ->
+          (v1 + v1) * v2
+      end
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.qux({:ok, 2, 4})
+  16
+
+  iex(2)> Foo.qux({:error, 2, 4})
+  ** (CaseClauseError) no case clause matching: {:error, 2, 4}
+  ```
+
+  As shown in the following code, we can simplify this code by replacing the ``case`` statement with the code that would be executed by their single branch.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do 
+    def qux(value) do
+      {:ok, v1, v2} = value
+      (v1 + v1) * v2
+    end
+  end
+  
+  #...Use examples...
+  iex(1)> Foo.qux({:ok, 2, 4}) 
+  16
+
+  iex(2)> Foo.qux({:error, 2, 4})
+  ** (MatchError) no match of right hand side value: {:error, 2, 4}                   
+  ```
+
+  Note that the only behavioral difference between the original and refactored code is that a different error is raised when the pattern matching does not occur (i.e., ``MatchError``). This could be compensated for by using the error-handling mechanism of Elixir, as shown in [Converts guards to conditionals](#converts-guards-to-conditionals).
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Transform to list comprehension
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ Elixir, like Erlang, provides several built-in ``higher-order functions`` capable of taking lists as parameters and returning new lists modified from the original. In Elixir, ``Enum.map/2`` takes a list and an anonymous function as parameters, creating a new list composed of each element of the original list with values altered by applying the anonymous function. On the other hand, the function ``Enum.filter/2`` also takes a list and an anonymous function as parameters but creates a new list composed of elements from the original list that pass the filter established by the anonymous function. A list comprehension is another syntactic construction capable to create a list based on existing ones. This feature is based on the mathematical notation for defining sets and is very common in functional languages such as Haskell, Erlang, Clojure, and Elixir. This refactoring aims to transform calls to ``Enum.map/2`` and ``Enum.filter/2`` into list comprehensions, creating a semantically equivalent code that can be more declarative and easy to read.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we are using ``Enum.map/2`` to create a new list containing the elements of the original list squared. Furthermore, we are using ``Enum.filter/2`` to create a new list containing only the even numbers present in the original list.
+
+  ```elixir
+  # Before refactoring:
+
+  iex(1)> Enum.map([2, 3, 4], &(&1 * &1))
+  [4, 9, 16]
+
+  iex(2)> Enum.filter([1, 2, 3, 4, 5], &(rem(&1, 2) == 0))
+  [2, 4]
+  ```
+
+  We can replace the use of ``Enum.map/2`` and ``Enum.filter/2`` with the creation of semantically equivalent list comprehensions in Elixir, making the code more declarative as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  iex(1)> for x <- [2, 3, 4], do: x * x
+  [4, 9, 16]
+
+  iex(2)> for x <- [1, 2, 3, 4, 5], rem(x, 2) == 0, do: x 
+  [2, 4]                       
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Nested list functions to comprehension
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ This refactoring is a specific instance of [Transform to list comprehension](#transform-to-list-comprehension). When ``Enum.map/2`` and ``Enum.filter/2`` are used in a nested way to generate a new list, the code readability is compromised, and we also have an inefficient code, since the original list can be visited more than once and an intermediate list needs to be built. This refactoring, also referred to as ``deforestation``, aims to transform nested calls to ``Enum.map/2`` and ``Enum.filter/2`` into a list comprehension, creating a semantically equivalent code that can be more readable and more efficient.
+
+* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we are using ``Enum.map/2`` and ``Enum.filter/2`` in a nested way to create a new list containing only the even elements of the original list squared
+
+  ```elixir
+  # Before refactoring:
+
+  iex(1)> Enum.filter([1, 2, 3, 4, 5], &(rem(&1, 2) == 0)) |> Enum.map(&(&1 * &1))
+  [4, 16]
+  ```
+
+  We can replace these nested calls with the creation of semantically equivalent list comprehension in Elixir, making the code more declarative and efficient as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  iex(1)> for x <- [1, 2, 3, 4, 5], rem(x, 2) == 0, do: x * x
+  [4, 16]                       
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### List comprehension simplifications
+
+* __Category:__ Functional Refactorings.
+
+* __Motivation:__ This refactoring is the inverse of [Transform to list comprehension](#transform-to-list-comprehension) and [Nested list functions to comprehension](#nested-list-functions-to-comprehension). We can apply this refactoring to existing list comprehensions in the Elixir codebase, transforming them into semantically equivalent calls to the functions ``Enum.map/2`` or ``Enum.filter/2``.
+
+* __Examples:__ Take a look at the examples in [Transform to list comprehension](#transform-to-list-comprehension) and [Nested list functions to comprehension](#nested-list-functions-to-comprehension) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
+
+[▲ back to Index](#table-of-contents)
+___
+
 ## Erlang-Specific Refactorings
 
-Erlang-specific refactorings are those that use programming features unique to the Erlang ecosystem (e.g., OTP, typespecs, and behaviours). In this section, 11 different refactorings classified as Erlang-specific are explained and exemplified:
+Erlang-specific refactorings are those that use programming features unique to the Erlang ecosystem (e.g., OTP, typespecs, and behaviours). In this section, 10 different refactorings classified as Erlang-specific are explained and exemplified:
 
 ### Generate function specification
 
-* __Category:__ Erlang-specific Refactorings*.
+* __Category:__ Erlang-specific Refactorings.
 
 * __Motivation:__ Despite being a dynamically-typed language, Elixir offers a feature to compensate for the lack of a static type system. By using ``Typespecs``, we can specify the types of each function parameter and of the return value. Utilizing this Elixir feature not only improves documentation, but also can enhance code readability and prepare it to be analyzed for tools like [Dialyzer][Dialyzer], enabling the detection of type inconsistencies, and potential bugs. The goal of this refactoring is simply to use ``Typespecs`` in a function to promote the aforementioned benefits of using this feature.
 
@@ -2562,77 +2504,6 @@ Erlang-specific refactorings are those that use programming features unique to t
   ```
 
   Note that with the use of ``@spec``, we can easily check the function specification using Elixir's helper.
-
-[▲ back to Index](#table-of-contents)
-___
-
-### Transform to list comprehension
-
-* __Category:__ Erlang-specific Refactorings*.
-
-* __Motivation:__ Elixir, like Erlang, provides several built-in ``higher-order functions`` capable of taking lists as parameters and returning new lists modified from the original. In Elixir, ``Enum.map/2`` takes a list and an anonymous function as parameters, creating a new list composed of each element of the original list with values altered by applying the anonymous function. On the other hand, the function ``Enum.filter/2`` also takes a list and an anonymous function as parameters but creates a new list composed of elements from the original list that pass the filter established by the anonymous function. A list comprehension is another syntactic construction capable to create a list based on existing ones. This feature is based on the mathematical notation for defining sets and is very common in functional languages such as Haskell, Erlang, Clojure, and Elixir. This refactoring aims to transform calls to ``Enum.map/2`` and ``Enum.filter/2`` into list comprehensions, creating a semantically equivalent code that can be more declarative and easy to read.
-
-* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we are using ``Enum.map/2`` to create a new list containing the elements of the original list squared. Furthermore, we are using ``Enum.filter/2`` to create a new list containing only the even numbers present in the original list.
-
-  ```elixir
-  # Before refactoring:
-
-  iex(1)> Enum.map([2, 3, 4], &(&1 * &1))
-  [4, 9, 16]
-
-  iex(2)> Enum.filter([1, 2, 3, 4, 5], &(rem(&1, 2) == 0))
-  [2, 4]
-  ```
-
-  We can replace the use of ``Enum.map/2`` and ``Enum.filter/2`` with the creation of semantically equivalent list comprehensions in Elixir, making the code more declarative as shown below.
-
-  ```elixir
-  # After refactoring:
-
-  iex(1)> for x <- [2, 3, 4], do: x * x
-  [4, 9, 16]
-
-  iex(2)> for x <- [1, 2, 3, 4, 5], rem(x, 2) == 0, do: x 
-  [2, 4]                       
-  ```
-
-[▲ back to Index](#table-of-contents)
-___
-
-### Nested list functions to comprehension
-
-* __Category:__ Erlang-specific Refactorings*.
-
-* __Motivation:__ This refactoring is a specific instance of [Transform to list comprehension](#transform-to-list-comprehension). When ``Enum.map/2`` and ``Enum.filter/2`` are used in a nested way to generate a new list, the code readability is compromised, and we also have an inefficient code, since the original list can be visited more than once and an intermediate list needs to be built. This refactoring, also referred to as ``deforestation``, aims to transform nested calls to ``Enum.map/2`` and ``Enum.filter/2`` into a list comprehension, creating a semantically equivalent code that can be more readable and more efficient.
-
-* __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we are using ``Enum.map/2`` and ``Enum.filter/2`` in a nested way to create a new list containing only the even elements of the original list squared
-
-  ```elixir
-  # Before refactoring:
-
-  iex(1)> Enum.filter([1, 2, 3, 4, 5], &(rem(&1, 2) == 0)) |> Enum.map(&(&1 * &1))
-  [4, 16]
-  ```
-
-  We can replace these nested calls with the creation of semantically equivalent list comprehension in Elixir, making the code more declarative and efficient as shown below.
-
-  ```elixir
-  # After refactoring:
-
-  iex(1)> for x <- [1, 2, 3, 4, 5], rem(x, 2) == 0, do: x * x
-  [4, 16]                       
-  ```
-
-[▲ back to Index](#table-of-contents)
-___
-
-### List comprehension simplifications
-
-* __Category:__ Erlang-specific Refactorings*.
-
-* __Motivation:__ This refactoring is the inverse of [Transform to list comprehension](#transform-to-list-comprehension) and [Nested list functions to comprehension](#nested-list-functions-to-comprehension). We can apply this refactoring to existing list comprehensions in the Elixir codebase, transforming them into semantically equivalent calls to the functions ``Enum.map/2`` or ``Enum.filter/2``.
-
-* __Examples:__ Take a look at the examples in [Transform to list comprehension](#transform-to-list-comprehension) and [Nested list functions to comprehension](#nested-list-functions-to-comprehension) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -2767,7 +2638,7 @@ ___
 
 ### Add type declarations and contracts
 
-* __Category:__ Erlang-specific Refactorings*.
+* __Category:__ Erlang-specific Refactorings.
 
 * __Motivation:__ Despite being a dynamically-typed language, Elixir offers a feature to compensate for the lack of a static type system. By using ``Typespecs``, we can specify the types of each function parameter and of the return value. Utilizing this Elixir feature not only improves documentation, but also can enhance code readability and prepare it to be analyzed for tools like [Dialyzer][Dialyzer], enabling the detection of type inconsistencies, and potential bugs. The goal of this refactoring is to use `Typespecs` to create custom data types, thereby naming recurring data structures in the codebase and increasing system readability.
 
@@ -2841,7 +2712,7 @@ ___
 
 ## Add a tag to messages
 
-* __Category:__ Erlang-Specific Refactorings*.
+* __Category:__ Erlang-Specific Refactorings.
 
 * __Motivation:__ In Elixir, processes run in an isolated manner, often concurrently with others. Communication between different processes is performed through message passing. This refactoring aims to adapt processes that communicate with each other by adding tags that identify groups of messages exchanged between them. This identification allows for different treatments of received messages based on their purpose or format.
 
@@ -2965,7 +2836,7 @@ ___
 
 ## Register a process
 
-* __Category:__ Erlang-Specific Refactorings*.
+* __Category:__ Erlang-Specific Refactorings.
 
 * __Motivation:__ In Elixir, processes run in an isolated manner, often concurrently with others. Communication between different processes is performed through message passing. This refactoring involves assigning a user-defined name to a process ID and using that user-defined name instead of the process ID in message passing. Any process in an Elixir system can communicate with a registered process even without knowing its ID.
 
@@ -2994,6 +2865,135 @@ ___
   iex(3)> Sender.send_msg(:receiver, "Hello World!")
   Message: Hello World!
   ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Behaviour extraction
+
+* __Category:__ Erlang-specific Refactorings.
+
+* __Motivation:__ This refactoring is similar to Extract Interface, proposed by Fowler and Beck for object-oriented languages. In Elixir, a ``behaviour`` serves as an interface, which is a contract that a module can fulfill by implementing functions in a guided way according to the formats of parameters and return types defined in the contract. A ``behaviour`` is an abstraction that defines only the functionality to be implemented, but not how that functionality is implemented. When we find a function that can be repeated in different modules, but performing special roles in each of them, it can be a good idea to abstract this function by extracting it to a ``behaviour``, standardizing a contract to be followed by all modules that implement or may implement it in the future.
+
+* __Examples:__ The following code example illustrates the use of this refactoring technique. In this case, the module ``Foo`` has two functions. The function ``print_result/2`` has a generic behavior, that is, it simply displays the result of an operation. On the other hand, the function ``math_operation/2`` has a special role in this module, which is to attempt to sum two numbers and return a tuple that may have the operation's result or an error if invalid parameters are passed to the function call.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def math_operation(a, b) when is_number(a) and is_number(b) do
+      {:ok, a + b}
+    end
+    def math_operation(_, _), do: {:error, "args not numeric"}
+
+    def print_result(a, b) do
+      {_, r} = math_operation(a, b)
+      IO.puts("Operation result: #{r}")
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.math_operation(1, 2)   
+  {:ok, 3}
+  
+  iex(2)> Foo.math_operation(1, "jose")
+  {:error, "args not numeric"}
+  
+  iex(3)> Foo.print_result(1, 2)        
+  Operation results: 3
+  ```
+
+  Although this is a simple example, note that ``math_operation/2`` could eventually be implemented in other modules to perform different special roles, such as division, multiplication, subtraction, etc. With that in mind, we can standardize a contract for ``math_operation/2``, guiding developers to follow the same format every time this function is implemented in the codebase. To do so, this refactoring will transform ``Foo`` into a behaviour definition by creating a ``@callback`` that defines the format of ``math_operation/2``. In addition, using [Moving a definition](#moving-a-definition), we will move ``math_operation/2`` to a new module called ``Sum``, updating all previous calls to ``math_operation/2``. Finally, ``Sum`` should explicitly implement the contract defined by ``Foo`` using the ``@behaviour`` definition.
+  
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    # behaviour definition
+    @callback math_operation(a :: any(), b :: any()) :: {atom(), any()} 
+
+    def print_result(a, b) do
+      {_, r} = Sum.math_operation(a, b) # <- new refactoring opportunity!
+      IO.puts("Operation result: #{r}")
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.print_result(1, 2)      
+  Operation result: 3
+  ```
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Sum do
+    @behaviour Foo  #<- behaviour implementation
+
+    @impl Foo       #<- behaviour implementation
+    def math_operation(a, b) when is_number(a) and is_number(b) do
+      {:ok, a + b}
+    end
+    def math_operation(_, _), do: {:error, "args not numeric"}
+  end
+
+  #...Use examples...
+  iex(1)> Sum.math_operation(1, 2)
+  {:ok, 3}
+  
+  iex(2)> Sum.math_operation(1, "Jose")
+  {:error, "args not numeric"}
+  ```
+
+  After this refactoring, the module ``Foo`` acts as the ``behaviour definition`` and the module ``Sum`` as the ``behaviour instance``. This refactoring is highly valuable since behaviour constructs allow static code analysis tools such as [Dialyzer][Dialyzer] to have a better understanding of the code, offer useful recommendations, and detect potential issues.
+  
+  __Recalling previous refactorings:__ Although this refactoring was successfully completed, note that it created a new opportunity for refactoring in the function ``Foo.print_result/2``. The first line of this function remained with a hard-coded call to ``Sum.math_operation/2``, which is an implementation of the ``@callback`` defined in the behaviour. Imagine that in the future the module ``Subtraction``, which also implements the ``Foo`` behaviour, is created:
+
+  ```elixir
+  defmodule Subtraction do
+    @behaviour Foo  #<- behaviour implementation
+
+    @impl Foo       #<- behaviour implementation
+    def math_operation(a, b) when is_number(a) and is_number(b) do
+      {:ok, a - b}
+    end
+    def math_operation(_, _), do: {:error, "args not numeric"}
+  end
+  ```
+
+  To make ``Foo.print_result/2`` able to display the results of any possible implementation of the ``Foo`` behaviour (e.g. ``Sum`` and ``Subtraction``), we can apply [Generalise a function definition](#generalise-a-function-definition) to it, resulting in the following code:
+
+  ```elixir
+  defmodule Foo do
+    @callback math_operation(a :: any(), b :: any()) :: {atom(), any()}
+
+    def print_result(a, b, math_operation) do
+      {_, r} = math_operation.(a, b)                #<- generalised!
+      IO.puts("Operation result: #{r}")
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.print_result(1, 2, &Sum.math_operation/2)        
+  Operation result: 3
+
+  iex(2)> Foo.print_result(1, 2, &Subtraction.math_operation/2)
+  Operation result: -1
+  ```
+  
+  These examples are based on Erlang code written in this paper: [[1]](https://dl.acm.org/doi/10.1145/3064899.3064909)
+  
+[▲ back to Index](#table-of-contents)
+___
+
+### Behaviour inlining
+
+* __Category:__ Erlang-specific Refactorings.
+
+* __Motivation:__ This refactoring is the inverse of [Behaviour extraction](#behaviour-extraction). Remembering, behaviour extraction aims to define a callback to compose a standardized interface for a function in a module that acts as a ``behaviour definition`` and move the existing version of that function to another module that follows this standardization, implementing the callback (``behaviour instance``). In contrast, Behaviour inlining aims to eliminate the implementations of callbacks in a ``behaviour instance``.
+
+* __Examples:__ To perform this elimination, the function that implements a callback in a ``behaviour instance`` is moved to the ``behaviour definition`` module using [Moving a definition](#moving-a-definition), which will handle possible naming conflicts and update references to that function. If the moved function was the only callback implemented by the ``behaviour instance`` module, the definition of the implemented behaviour (``@behaviour``) should be removed the ``behaviour instance``, thus turning it into a regular module. Additionally, when the moved function is the last existing implementation of the callback throughout the codebase, this callback should cease to exist, being removed from the ``behaviour definition`` module.
+  
+  To better understand, take a look at the example in [Behaviour extraction](#behaviour-extraction) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
 
 [▲ back to Index](#table-of-contents)
 ___
