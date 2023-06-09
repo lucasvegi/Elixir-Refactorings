@@ -51,7 +51,7 @@
   * [List comprehension simplifications](#list-comprehension-simplifications)
 * __[Erlang-Specific Refactorings](#erlang-specific-refactorings)__
   * [Generate function specification](#generate-function-specification)
-  * [From defensive-style programming to non-defensive style](#from-defensive-style-programming-to-non-defensive-style)
+  * [From defensive to non-defensive programming style](#from-defensive-to-non-defensive-programming-style)
   * [From meta to normal function application](#from-meta-to-normal-function-application)
   * [Remove unnecessary calls to length/1](#remove-unnecessary-calls-to-length1)
   * [Add type declarations and contracts](#add-type-declarations-and-contracts)
@@ -2508,7 +2508,7 @@ Erlang-specific refactorings are those that use programming features unique to t
 [▲ back to Index](#table-of-contents)
 ___
 
-### From defensive-style programming to non-defensive style
+### From defensive to non-defensive programming style
 
 * __Category:__ Erlang-specific Refactorings.
 
