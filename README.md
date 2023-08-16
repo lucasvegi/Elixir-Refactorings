@@ -3000,7 +3000,11 @@ ___
 
 ## About
 
-This catalog was proposed by <!--XX and XX-->, from <!--[XXXXX/XXX/XXXX][XXXXX]-->.
+This catalog was proposed by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC/UFMG][ASERG].
+
+For more info see the following paper:
+
+* __Towards a Catalog of Refactorings for Elixir__, International Conference on Software Maintenance and Evolution (ICSME), 2023. Preprint available soon!
 
 Please feel free to make pull requests and suggestions ([Issues][Issues] tab).
 
@@ -3008,14 +3012,14 @@ Please feel free to make pull requests and suggestions ([Issues][Issues] tab).
 
 ## Acknowledgments
 
-We are supported by [omitted due to DBR].
+We are supported by __[Finbits][Finbits]__<sup>TM</sup>, a Brazilian Elixir-based fintech:
 
 <div align="center">
-  <a href="https://www.finbits.com.br/" alt="XXX" title="XXX"><img width="20%" src="https://github.com/lucasvegi/Elixir-Code-Smells/blob/main/etc/finbits.png?raw=true"></a>
+  <a href="https://www.finbits.com.br/" alt="Click to learn more about Finbits!" title="Click to learn more about Finbits!"><img width="20%" src="https://github.com/lucasvegi/Elixir-Code-Smells/blob/main/etc/finbits.png?raw=true"></a>
   <br><br>
 </div>
 
-<!-- Our research is also part of the initiative called __[XX][XX]__ (in portuguese). -->
+Our research is also part of the initiative called __[Research with Elixir][ResearchWithElixir]__ (in portuguese).
 
 [▲ back to Index](#table-of-contents)
 
@@ -3041,7 +3045,7 @@ We are supported by [omitted due to DBR].
 [Dialyzer]: https://hex.pm/packages/dialyxir
 
 [ICPC-ERA]: https://conf.researchr.org/track/icpc-2022/icpc-2022-era
-[preprint-copy]: https://doi.org/10.48550/arXiv.2203.08877
+[preprint-copy]: https://doi.org/
 [ICPC22-PDF]: https://github.com/lucasvegi/Elixir-Code-Smells/blob/main/etc/Code-Smells-in-Elixir-ICPC22-Lucas-Vegi.pdf
 [ICPC22-YouTube]: https://youtu.be/3X2gxg13tXo
 [Podcast-Spotify]: http://elixiremfoco.com/episode?id=lucas-vegi-e-marco-tulio
