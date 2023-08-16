@@ -1,0 +1,43 @@
+cff-version: 1.2.0
+message: 'If you use this catalog in your work, please cite it as below.'
+authors:
+  - given-names: Lucas Francisco da Matta
+    family-names: Vegi
+    email: lucasvegi@gmail.com
+    affiliation: UFMG
+    orcid: 'https://orcid.org/0000-0002-7999-7098'
+  - given-names: Marco Tulio
+    family-names: Valente
+    email: mtvalente@gmail.com
+    affiliation: UFMG
+    orcid: 'https://orcid.org/0000-0002-8180-7548'
+title: 'Catalog of Elixir Refactorings'
+version: '1.0'
+date-released: '2023-08-16'
+url: 'https://github.com/lucasvegi/Elixir-Refactorings'
+keywords:
+  - elixir
+  - refactorings
+  - functional programming
+license: MIT
+preferred-citation:
+  type: conference-paper
+  message: 'If you use this catalog in your work, please cite it as below.'
+  authors:
+  - given-names: Lucas Francisco da Matta
+    family-names: Vegi
+    email: lucasvegi@dcc.ufmg.br
+    affiliation: Federal University of Minas Gerais (UFMG)
+    orcid: 'https://orcid.org/0000-0002-7999-7098'
+  - given-names: Marco Tulio
+    family-names: Valente
+    email: mtov@dcc.ufmg.br
+    affiliation: Federal University of Minas Gerais (UFMG)
+    orcid: 'https://orcid.org/0000-0002-8180-7548'
+  doi: ""  
+  collection-title: "39th International Conference on Software Maintenance and Evolution (ICSME'2023)"
+  pages: 5
+  start: 1 # First page number
+  end: 5 # Last page number
+  title: "Towards a Catalog of Refactorings for Elixir"
+  year: 2023
