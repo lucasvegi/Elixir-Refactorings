@@ -3004,7 +3004,7 @@ This catalog was proposed by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC
 
 For more info see the following paper:
 
-* __Towards a Catalog of Refactorings for Elixir__, International Conference on Software Maintenance and Evolution (ICSME), 2023. Preprint available soon!
+* [Towards a Catalog of Refactorings for Elixir](https://homepages.dcc.ufmg.br/~mtov/pub/2023-icsme-nier-elixir.pdf), International Conference on Software Maintenance and Evolution (ICSME), 2023.
 
 Please feel free to make pull requests and suggestions ([Issues][Issues] tab).
 
