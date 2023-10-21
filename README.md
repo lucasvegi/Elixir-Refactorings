@@ -1,5 +1,8 @@
 # [Catalog of Elixir Refactorings][Elixir Refactorings]
 
+[![GitHub last commit](https://img.shields.io/github/last-commit/lucasvegi/Elixir-Refactorings)](https://github.com/lucasvegi/Elixir-Refactorings/commits/main)
+[![Twitter URL](https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2Flucasvegi%2FElixir-Refactorings)](https://twitter.com/intent/tweet?url=https%3A%2F%2Fgithub.com%2Flucasvegi%2FElixir-Refactorings&via=lucasvegi&text=Catalog%20of%20Elixir%20Refactorings%3A&hashtags=MyElixirStatus%2CElixirLang)
+
 ## Table of Contents
 
 * __[Introduction](#introduction)__
