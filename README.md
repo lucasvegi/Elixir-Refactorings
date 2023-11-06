@@ -52,6 +52,7 @@
   * [Transform to list comprehension](#transform-to-list-comprehension)
   * [Nested list functions to comprehension](#nested-list-functions-to-comprehension)
   * [List comprehension simplifications](#list-comprehension-simplifications)
+  * [Closure conversion](#closure-conversion) [^*]
 * __[Erlang-Specific Refactorings](#erlang-specific-refactorings)__
   * [Generate function specification](#generate-function-specification)
   * [From defensive to non-defensive programming style](#from-defensive-to-non-defensive-programming-style)
@@ -66,11 +67,13 @@
 * __[About](#about)__
 * __[Acknowledgments](#acknowledgments)__
 
+[^*]: This refactoring emerged from an extended Systematic Literature Review (SLR).
+
 ## Introduction
 
 [Elixir][Elixir] is a functional programming language whose popularity is on the rise in the industry <sup>[link][ElixirInProduction]</sup>. As no known studies have explored refactoring strategies for code implemented with this language, we reviewed scientific literature seeking refactoring strategies in other functional languages or languages that inspired the creation of Elixir (e.g., Ruby). The found refactorings were analyzed, filtering only those directly compatible or that could be adapted for Elixir code.
 
-As a result of this investigation, we have proposed a catalog of 54 refactorings for Elixir systems. These refactorings are categorized into three different groups ([traditional](#traditional-refactorings), [functional](#functional-refactorings), and [Erlang-specific](#erlang-specific-refactorings)), according to the programming features required in code transformations. This catalog of Elixir refactorings is presented below. Each refactoring is documented using the following structure:
+As a result of this investigation, we have proposed a catalog of 55 refactorings for Elixir systems. These refactorings are categorized into three different groups ([traditional](#traditional-refactorings), [functional](#functional-refactorings), and [Erlang-specific](#erlang-specific-refactorings)), according to the programming features required in code transformations. This catalog of Elixir refactorings is presented below. Each refactoring is documented using the following structure:
 
 * __Name:__ Unique identifier of the refactoring. This name is important to facilitate communication between developers;
 * __Category:__ Scope of refactoring in relation to its application coverage;
@@ -1276,7 +1279,7 @@ ___
 
 ## Functional Refactorings
 
-Functional refactorings are those that use programming features characteristic of functional languages, such as pattern matching and higher-order functions. In this section, 23 different refactorings classified as functional are explained and exemplified:
+Functional refactorings are those that use programming features characteristic of functional languages, such as pattern matching and higher-order functions. In this section, 24 different refactorings classified as functional are explained and exemplified:
 
 ### Generalise a function definition
 
@@ -2434,6 +2437,63 @@ ___
 * __Motivation:__ This refactoring is the inverse of [Transform to list comprehension](#transform-to-list-comprehension) and [Nested list functions to comprehension](#nested-list-functions-to-comprehension). We can apply this refactoring to existing list comprehensions in the Elixir codebase, transforming them into semantically equivalent calls to the functions ``Enum.map/2`` or ``Enum.filter/2``.
 
 * __Examples:__ Take a look at the examples in [Transform to list comprehension](#transform-to-list-comprehension) and [Nested list functions to comprehension](#nested-list-functions-to-comprehension) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Closure conversion
+
+* __Category:__ Functional Refactorings.
+
+* __Note:__ This refactoring emerged from an extended Systematic Literature Review (SLR).
+
+* __Motivation:__ This refactoring involves transforming __closures__ (_i.e._, anonymous functions that access variables outside their scope) into functions that receive the referenced variables as parameters. This transformation is beneficial for code optimization, enhancing memory management, simplifying the code's logical understanding, and improving its readability.
+
+* __Examples:__ In this example, ``generate_sum/1`` is a _higher-order function_ because it returns an anonymous function. The returned anonymous function is a __closure__ since it uses a variable that was defined outside its scope (_i.e._, variable ``x``).
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def generate_sum(x) do
+      fn y -> x + y end   # closure example!
+    end
+  end
+
+  #...Use example...
+  iex(1)> add_8 = Foo.generate_sum(8)
+  #Function<0.104673823/1 in Foo.generate_sum/1>
+
+  iex(2)> result = add_8.(2)
+  10
+  
+  iex(3)> result = add_8.(5)
+  13
+  ```
+
+  After the call to `Foo.generate_sum(8)`, the variable `x` will always have the value `8` in the anonymous function assigned to `add_8`. This can be observed when this anonymous function is called with different values for its parameter `y` (_e.g._, `2` and `5`). To optimize and improve code readability, we can perform a *__closure conversion__*, making `x` a parameter of the anonymous function returned by `generate_sum/1`, thus defining it within its scope. This refactoring, in this context, acts as a specific type of [Add or remove a parameter](#add-or-remove-a-parameter) applied to an anonymous function. Therefore, since the arity of the anonymous function has been modified, calls to this anonymous function also need to be updated, as shown below.
+  
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def generate_sum(_x) do
+      fn x, y -> x + y end   # closure conversion!
+    end
+  end
+
+  #...Use example...
+  iex(1)> add_8 = Foo.generate_sum(8)  # unnecessary parameter in generate_sum/1
+  #Function<0.7062781/2 in Foo.generate_sum/1>
+
+  iex(2)> result = add_8.(8,2)       
+  10
+
+  iex(3)> result = add_8.(2,2) 
+  4
+  ```
+
+  Note that this refactored code still presents opportunities to apply of other refactoring strategies. Since the parameter of `generate_sum/1` is no longer needed as it is always ignored within the function, we can apply [Add or remove a parameter](#add-or-remove-a-parameter) to `generate_sum/1`, transforming it into `generate_sum/0`. Additionally, we can use [Rename an identifier](#rename-an-identifier) to update the name of the variable `add_8`, responsible for binding the anonymous function returned by the higher-order function. As both values summed by the anonymous function are now defined at the time of its call, the name `add_8` no longer makes sense.
 
 [▲ back to Index](#table-of-contents)
 ___
