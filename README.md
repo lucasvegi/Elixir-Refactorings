@@ -2194,7 +2194,7 @@ ___
 
 * __Category:__ Functional Refactorings.
 
-* __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. More precisely, this refactoring allows transforming a multi-clause function into a single-clause function, mapping function clauses into clauses of a ``case`` statement. The reverse can also occur, i.e., mapping a ``case`` statement clause into function clauses, thus transforming a single-clause function into a multi-clause function.
+* __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. More precisely, this refactoring allows transforming a multi-clause function into a single-clause function, mapping function clauses into clauses of a ``case`` statement. The reverse can also occur, i.e., mapping a ``case`` statement clause into function clauses, thus transforming a single-clause function into a multi-clause function (see [Introduce pattern matching over a parameter](#introduce-pattern-matching-over-a-parameter)).
 
 * __Examples:__ The following code examples demonstrate this refactoring. Before the refactoring, the `merge_sort/1` function has three clauses, with two for its base cases and one for its recursive case.
 
@@ -2292,27 +2292,47 @@ ___
   21
   ```
 
-  The following code can be used to compare the performance of the two solutions. In this code, the `sum_list_elements/1` function has illustrative names `before_ref/1` and `after_ref/1` to represent their respective body-recursive and tail-recursive versions.
+  By using the [Benchee](https://github.com/bencheeorg/benchee) library for conducting micro benchmarking in Elixir, we can highlight the performance improvement potential of this refactoring. In the following code, the `sum_list_elements/1` function is given illustrative names, `before_ref/1` and `after_ref/1`, to represent their respective body-recursive and tail-recursive versions.
 
   ```elixir
-  defp time(func, args) do
-    t_0 = Time.utc_now()
-    func.(args)
-    Time.diff(Time.utc_now(), t_0, :millisecond)
-  end
+  list = Enum.to_list(1..1_000_000)
 
-  def compare(list \\ Enum.to_list(1..1_000_000)) do
-    IO.puts("Body recursive: #{time(&before_ref/1, list)} millisecond(s)")
-    IO.puts("Tail recursive: #{time(&after_ref/1, list)} millisecond(s)")
-  end
-
-  #...Use examples...
-  iex(1)> Foo.compare()
-  Body recursive: 44 millisecond(s)
-  Tail recursive: 4 millisecond(s)
+  Benchee.run(%{
+    "body_recursive" => fn -> Foo.before_ref(list) end,
+    "tail_recursive" => fn -> Foo.after_ref(list) end
+  })
   ```
 
-  Note that for a list with one million elements, the tail-recursive version was up to 10 times faster than the body-recursive version.
+  Note that for a list with one million elements, the tail-recursive version can be about three times faster than the body-recursive version.
+
+  ```
+  Operating System: macOS
+  CPU Information: Intel(R) Core(TM) i7-4578U CPU @ 3.00GHz
+  Number of Available Cores: 4
+  Available memory: 16 GB
+  Elixir 1.14.3
+  Erlang 25.2
+
+  Benchmark suite executing with the following configuration:
+  warmup: 2 s
+  time: 5 s
+  memory time: 0 ns
+  reduction time: 0 ns
+  parallel: 1
+  inputs: none specified
+  Estimated total run time: 14 s
+
+  Benchmarking body_recursive ...
+  Benchmarking tail_recursive ...
+
+  Name                     ips        average  deviation         median         99th %
+  tail_recursive        285.51        3.50 ms    ±12.03%        3.33 ms        4.78 ms
+  body_recursive         91.90       10.88 ms    ±36.43%       10.32 ms       20.59 ms
+
+  Comparison: 
+  tail_recursive        285.51
+  body_recursive         91.90 - 3.11x slower +7.38 ms
+  ```
 
 [▲ back to Index](#table-of-contents)
 ___
