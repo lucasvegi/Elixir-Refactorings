@@ -2300,7 +2300,7 @@ ___
   Benchee.run(%{
     "body_recursive" => fn -> Foo.before_ref(list) end,
     "tail_recursive" => fn -> Foo.after_ref(list) end
-  })
+  }, parallel: 4)
   ```
 
   Note that for a list with one million elements, the tail-recursive version can be about three times faster than the body-recursive version.
@@ -2318,7 +2318,7 @@ ___
   time: 5 s
   memory time: 0 ns
   reduction time: 0 ns
-  parallel: 1
+  parallel: 4
   inputs: none specified
   Estimated total run time: 14 s
 
@@ -2326,12 +2326,12 @@ ___
   Benchmarking tail_recursive ...
 
   Name                     ips        average  deviation         median         99th %
-  tail_recursive        285.51        3.50 ms    ±12.03%        3.33 ms        4.78 ms
-  body_recursive         91.90       10.88 ms    ±36.43%       10.32 ms       20.59 ms
+  tail_recursive        180.22        5.55 ms    ±32.49%        5.42 ms       15.36 ms
+  body_recursive         46.39       21.56 ms    ±50.78%       20.13 ms       52.23 ms
 
   Comparison: 
-  tail_recursive        285.51
-  body_recursive         91.90 - 3.11x slower +7.38 ms
+  tail_recursive        180.22
+  body_recursive         46.39 - 3.89x slower +16.01 ms
   ```
 
 [▲ back to Index](#table-of-contents)
