@@ -349,6 +349,7 @@ ___
       end
     else
       {:error, :invalid_move}
+    end
   end
   ```
 
@@ -1690,7 +1691,7 @@ ___
 
 * __Category:__ Traditional Refactoring.
 
-* __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. Specifically, this refactoring allows us to partition the branches of a ``case`` statement in a divide-and-conquer function into two categories: _(1)_ the base cases, and _(2)_ the recursive cases. This restructuring replaces the original ``case`` statement with four ``case`` statements.
+* __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. Specifically, this refactoring allows us to partition the branches of a ``case`` statement in a divide-and-conquer function into two categories: *(1)* the base cases, and *(2)* the recursive cases. This restructuring replaces the original ``case`` statement with four ``case`` statements.
 
 * __Examples:__ The following code examples illustrate a refactoring of the merge sort algorithm. Prior to the refactoring, the `merge_sort/1` function had only a single ``case`` statement to handle both the base case and the recursive case.
 
@@ -1717,9 +1718,9 @@ ___
 
   After refactoring, this ``case`` statement is replaced by four separate ``case`` statements, each with its respective role:
 
-  - _(1 and 2)_ Determine whether the instance is a base case (``true``) or a recursive case (``false``);
+  - *(1 and 2)* Determine whether the instance is a base case (``true``) or a recursive case (``false``);
 
-  - _(3 and 4)_ Define which specific base case or recursive case we are dealing with, respectively.
+  - *(3 and 4)* Define which specific base case or recursive case we are dealing with, respectively.
   
   ```elixir
   # After refactoring:
@@ -2839,7 +2840,7 @@ ___
 
   Note that for a list with one million elements, the tail-recursive version can be about three times faster than the body-recursive version.
 
-  ```
+  ```bash
   Operating System: macOS
   CPU Information: Intel(R) Core(TM) i7-4578U CPU @ 3.00GHz
   Number of Available Cores: 4
@@ -3001,9 +3002,9 @@ ___
 
 * __Note:__ This refactoring emerged from an extended Systematic Literature Review (SLR).
 
-* __Motivation:__ This refactoring involves transforming __closures__ (_i.e._, anonymous functions that access variables outside their scope) into functions that receive the referenced variables as parameters. This transformation is beneficial for code optimization, enhancing memory management, simplifying the code's logical understanding, and improving its readability.
+* __Motivation:__ This refactoring involves transforming __closures__ (*i.e.*, anonymous functions that access variables outside their scope) into functions that receive the referenced variables as parameters. This transformation is beneficial for code optimization, enhancing memory management, simplifying the code's logical understanding, and improving its readability.
 
-* __Examples:__ In this example, ``generate_sum/1`` is a _higher-order function_ because it returns an anonymous function. The returned anonymous function is a __closure__ since it uses a variable that was defined outside its scope (_i.e._, variable ``x``).
+* __Examples:__ In this example, ``generate_sum/1`` is a *higher-order function* because it returns an anonymous function. The returned anonymous function is a __closure__ since it uses a variable that was defined outside its scope (*i.e.*, variable ``x``).
 
   ```elixir
   # Before refactoring:
@@ -3025,7 +3026,7 @@ ___
   13
   ```
 
-  After the call to `Foo.generate_sum(8)`, the variable `x` will always have the value `8` in the anonymous function assigned to `add_8`. This can be observed when this anonymous function is called with different values for its parameter `y` (_e.g._, `2` and `5`). To optimize and improve code readability, we can perform a *__closure conversion__*, making `x` a parameter of the anonymous function returned by `generate_sum/1`, thus defining it within its scope. This refactoring, in this context, acts as a specific type of [Add or remove a parameter](#add-or-remove-a-parameter) applied to an anonymous function. Therefore, since the arity of the anonymous function has been modified, calls to this anonymous function also need to be updated, as shown below.
+  After the call to `Foo.generate_sum(8)`, the variable `x` will always have the value `8` in the anonymous function assigned to `add_8`. This can be observed when this anonymous function is called with different values for its parameter `y` (*e.g.*, `2` and `5`). To optimize and improve code readability, we can perform a *__closure conversion__*, making `x` a parameter of the anonymous function returned by `generate_sum/1`, thus defining it within its scope. This refactoring, in this context, acts as a specific type of [Add or remove a parameter](#add-or-remove-a-parameter) applied to an anonymous function. Therefore, since the arity of the anonymous function has been modified, calls to this anonymous function also need to be updated, as shown below.
   
   ```elixir
   # After refactoring:
@@ -3646,7 +3647,6 @@ Our research is also part of the initiative called __[Research with Elixir][Rese
 [Elixir]: http://elixir-lang.org
 [ASERG]: http://aserg.labsoft.dcc.ufmg.br/
 [ElixirInProduction]: https://elixir-companies.com/
-[jose-valim]: https://github.com/josevalim
 [Finbits]: https://www.finbits.com.br/
 [ResearchWithElixir]: http://pesquisecomelixir.com.br/
 [Feature Envy]: https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#feature-envy
@@ -3657,12 +3657,13 @@ Our research is also part of the initiative called __[Research with Elixir][Rese
 [Unnecessary Macros]: https://github.com/lucasvegi/Elixir-Code-Smells#unnecessary-macros
 [Complex extractions in clauses]: https://github.com/lucasvegi/Elixir-Code-Smells#complex-extractions-in-clauses
 [Unsupervised process]: https://github.com/lucasvegi/Elixir-Code-Smells#unsupervised-process
-[Complex extractions in clauses]: https://github.com/lucasvegi/
 [Code organization by process]: https://github.com/lucasvegi/Elixir-Code-Smells#code-organization-by-process
 [Dialyzer]: https://hex.pm/packages/dialyxir
 
+<!--
 [ICPC-ERA]: https://conf.researchr.org/track/icpc-2022/icpc-2022-era
 [preprint-copy]: https://doi.org/
 [ICPC22-PDF]: https://github.com/lucasvegi/Elixir-Code-Smells/blob/main/etc/Code-Smells-in-Elixir-ICPC22-Lucas-Vegi.pdf
 [ICPC22-YouTube]: https://youtu.be/3X2gxg13tXo
 [Podcast-Spotify]: http://elixiremfoco.com/episode?id=lucas-vegi-e-marco-tulio
+-->
