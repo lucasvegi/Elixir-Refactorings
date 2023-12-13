@@ -6,6 +6,18 @@
 ## Table of Contents
 
 * __[Introduction](#introduction)__
+* __[Elixir-Specific Refactorings](#elixir-specific-refactorings)__
+  * [Alias expansion](#alias-expansion) [^**]
+  * [Default value for absent key in a Map](#default-value-for-absent-key-in-a-map) [^**]
+  * [Defining a subset of a Map](#defining-a-subset-of-a-map) [^**]
+  * [Modifying keys in a Map](#modifying-keys-in-a-map) [^**]
+  * [Simplifying Ecto schema fields validation](#simplifying-ecto-schema-fields-validation) [^**]
+  * [Pipeline using "with"](#pipeline-using-with) [^**]
+  * [Pipeline for database transactions](#pipeline-for-database-transactions) [^**]
+  * [Transform nested "if" statements into a "cond"](#transform-nested-if-statements-into-a-cond) [^**]
+  * [Explicit a double boolean negation](#explicit-a-double-boolean-negation) [^**]
+  * [Transform "if" statements using pattern matching into a "case"](#transform-if-statements-using-pattern-matching-into-a-case) [^**]
+  * [Moving "with" clauses without pattern matching](#moving-with-clauses-without-pattern-matching) [^**]
 * __[Traditional Refactorings](#traditional-refactorings)__
   * [Rename an identifier](#rename-an-identifier)
   * [Moving a definition](#moving-a-definition)
@@ -68,12 +80,13 @@
 * __[Acknowledgments](#acknowledgments)__
 
 [^*]: This refactoring emerged from an extended Systematic Literature Review (SLR).
+[^**]: This refactoring emerged from a Grey Literature Review (GLR).
 
 ## Introduction
 
-[Elixir][Elixir] is a functional programming language whose popularity is on the rise in the industry <sup>[link][ElixirInProduction]</sup>. As no known studies have explored refactoring strategies for code implemented with this language, we reviewed scientific literature seeking refactoring strategies in other functional languages or languages that inspired the creation of Elixir (e.g., Ruby). The found refactorings were analyzed, filtering only those directly compatible or that could be adapted for Elixir code.
+[Elixir][Elixir] is a functional programming language whose popularity is on the rise in the industry <sup>[link][ElixirInProduction]</sup>. As no known studies have explored refactoring strategies for code implemented with this language, we reviewed scientific literature seeking refactoring strategies in other functional languages. The found refactorings were analyzed, filtering only those directly compatible or that could be adapted for Elixir code. As a result of this investigation, we have initially proposed a catalog of 55 refactorings for Elixir systems.
 
-As a result of this investigation, we have proposed a catalog of 55 refactorings for Elixir systems. These refactorings are categorized into three different groups ([traditional](#traditional-refactorings), [functional](#functional-refactorings), and [Erlang-specific](#erlang-specific-refactorings)), according to the programming features required in code transformations. This catalog of Elixir refactorings is presented below. Each refactoring is documented using the following structure:
+After that, we scoured websites, blogs, forums, and videos (grey literature review), looking for specific refactorings for Elixir that are discussed by its developers. With this investigation, the catalog was expanded to 77 refactorings. These refactorings are categorized into four different groups ([Elixir-specific](#elixir-specific-refactorings), [traditional](#traditional-refactorings), [functional](#functional-refactorings), and [Erlang-specific](#erlang-specific-refactorings)), according to the programming features required in code transformations. This catalog of Elixir refactorings is presented below. Each refactoring is documented using the following structure:
 
 * __Name:__ Unique identifier of the refactoring. This name is important to facilitate communication between developers;
 * __Category:__ Scope of refactoring in relation to its application coverage;
@@ -90,9 +103,530 @@ Please feel free to make pull requests and suggestions ([Issues][Issues] tab). W
 
 [▲ back to Index](#table-of-contents)
 
+## Elixir-Specific Refactorings
+
+Elixir-specific refactorings are those that use programming features unique to this language. In this section, 11 different refactorings classified as Elixir-specific are explained and exemplified:
+
+### Alias expansion
+
+* __Category:__ Elixir-specific Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ In Elixir, when using an `alias` for multiple names from the same namespace, you can consolidate multi-instruction instructions per namespace. Although this programming practice is common and can reduce the number of lines of code, multi-aliases can make it harder to search for a dependency in large code bases. This refactoring aims to expand multi-alias instructions fused into one multi-instruction per namespace, transforming them into single alias instructions per name. This provides improvement in code readability and traceability.
+
+* __Examples:__ In the following code, before refactoring, we have a multi-alias instruction combining the definition of two dependencies. In this particular case, the dependencies for the `Baz` and `Boom` modules were merged into a single instruction.
+
+  ```elixir
+  # Before refactoring:
+
+  alias Foo.Bar.{Baz, Boom}
+  ```
+
+  Especially in larger code bases, involving a greater number of dependencies within the same namespace (nested modules), the definition of these aliases could be refactored by an *__alias expansion__*, better highlighting all dependencies, as shown in the following code.
+
+  ```elixir
+  # After refactoring:
+
+  alias Foo.Bar.Baz
+  alias Foo.Bar.Boom
+  ```
+
+  This example is derived from code found in the official documentation for the tools [Recode](https://hexdocs.pm/recode/0.6.5/Recode.Task.AliasExpansion.html) and [ExactoKnife](https://hexdocs.pm/exacto_knife/readme.html#refactorings).
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Default value for absent key in a Map
+
+* __Category:__ Elixir-specific Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ We often come across a situation where we expect a `Map` to have a certain key, and if not, we need to provide a default value. A commonly used alternative for such situations is using the built-in `Map.has_key?/2` function along with an `if...else` statement. Although this alternative works perfectly, it's possible to refactor this code using only the built-in `Map.get/3` function, making the code less verbose and more readable, while preserving the same behavior.
+
+* __Examples:__ In the following code, before refactoring, we utilize the `Map.has_key?/2` function in conjunction with an `if...else` statement to retrieve the currency from a ``Map`` containing the price of a product. If the `currency` key does not exist, we return the default value of `"USD"`.
+
+  ```elixir
+  # Before refactoring:
+
+  currency = 
+    if(Map.has_key? price, "currency") do
+      price["currency"]
+    else
+      "USD"
+  ```
+
+  Applying this refactoring, the above code can be transformed into the following code, preserving the behavior while reducing the number of lines.
+
+  ```elixir
+  # After refactoring:
+
+  currency = Map.get(price, "currency", "USD")
+  ```
+
+  This example is based on a original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Defining a subset of a Map
+
+* __Category:__ Elixir-specific Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ When dealing with huge `Map` structures, there are occasions when we need to extract a subset of elements to form a new `Map`. Instead of manually creating this subset by individually accessing each of the desired key/value pairs from the original `Map`, with this refactoring, we can simply use the built-in `Map.take/2` function.
+
+* __Examples:__ In the following code, we have a variable `pickup` bound to a `Map` composed of a huge number of keys.
+
+  ```elixir
+   # Huge Map
+  pickup = %{
+    "zip" => "75010",
+    "town" => "PARIS",
+    "stopName" => "RECEPTION",
+    "pickupId" => 4018,
+    "longitude" => 2.360982,
+    "latitude" => 48.868502
+    .... #a lot of keys
+  }
+  ```
+
+  To extract only the metadata related to location, before refactoring, we manually access the values identified by the keys `"latitude"` and `"longitude"` to then create a new `Map`.
+
+  ```elixir
+  # Before refactoring:
+
+  longitude = pickup["longitude"]
+  latitude = pickup["latitude"]
+  
+  location = %{     # <-- Defining a subset manually
+    "longitude" => longitude,
+    "latitude" => latitude
+  }
+  ```
+
+  Although this solution works, it can generate a significant amount of code, primarily due to duplications. Applying this refactoring, we can eliminate duplicated code, significantly reducing the number of lines and improving readability.
+
+  ```elixir
+  # After refactoring:
+
+  location = Map.take(pickup, ["latitude", "longitude"])
+  ```
+
+  This example is based on a original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Modifying keys in a Map
+
+* __Category:__ Elixir-specific Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ Sometimes we need to update the format of a ``Map``, replacing the name given to a key but keeping the new key name associated with the original value. Instead of using ``Map.get/2``, ``Map.put/2``, and ``Map.delete/2`` functions together, which involves a lot of manual work and generates many lines of code, we can simply use the built-in ``Map.new/2`` function along with the use of multi-clause lambdas. This refactoring can significantly reduce the volume of lines of code, eliminating duplicated code and even making the code more resilient to typing-related errors.
+
+* __Examples:__ In the following code, we have a variable `pickup` bound to a `Map`.
+
+  ```elixir
+  pickup = %{
+    "stopName" => "RECEPTION",
+    "pickupId" => 4018,
+    "longitude" => 2.360982,
+    "latitude" => 48.868502
+  }
+  ```
+
+  Let's suppose we want to change the name of the key `"latitude"` to simply `"lat"`, while keeping the rest of the `Map` unchanged. The following code, before refactoring, performs this task manually. It first retrieves the value associated with the `"latitude"` key, then creates a new key called `"lat"` and associates it with the extracted value from the `"latitude"` key. Finally, the `"latitude"` key is removed from the `Map`.
+
+  ```elixir
+  # Before refactoring:
+
+  latitude = Map.get(pickup, "latitude")    # --> step 1
+  pickup = Map.put(pickup, "lat", latitude) # --> step 2
+  pickup = Map.delete(pickup, "latitude")   # --> step 3 
+  ```
+
+  Although this solution works, imagine a situation where many keys need to be updated in a `Map`. The manual strategy presented above can become cumbersome and impractical. By using the built-in `Map.new/2` function, this refactoring would make it easier to simultaneously update the format of all keys in the `Map`, as shown in the following code.
+
+  ```elixir
+  # After refactoring:
+
+  pickup = 
+    Map.new(pickup, fn 
+      {"latitude", lat} -> {"lat", lat}
+      {"longitude", long} -> {"long", long}
+      {"pickupId", pickup_id} -> {"pickup_id", pickup_id}
+      {"stopName", stop_name} -> {"stop_name", stop_name}
+    end)
+  ```
+
+  This example is based on a original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Simplifying Ecto schema fields validation
+
+* __Category:__ Elixir-specific Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ After defining a schema in Ecto, it's common to need to group fields for validations, such as those performed by the Ecto validator ``validate_required/3``. However, if we attempt to perform this grouping by manually implementing a list, there's a risk of making the code overly verbose, prone to typographical errors, and even subject to rework if the schema is modified in the future. Instead of relying on manually created lists, we can simply use the Ecto ``__schema__/1`` function, which returns the list of fields in the schema. With this refactoring, we can simplify the code, making it less prone to errors and more maintainable.
+
+* __Examples:__ In the following code, we have an Ecto schema composed by six fields.
+
+  ```elixir
+  embedded_schema do
+    field :carrier_time, :string
+    field :carrier_date, :string
+    field :carrier_name, :string
+    field :carrier_number, :string
+    field :carrier_terminal, :string
+    field :carrier_type, :string
+  end
+  ```
+
+  The following code manually lists in the `schema_fields` variable all the fields in our schema that will be validated by the Ecto `validate_required/3` function. Note that this listing process can be cumbersome, prone to typographical errors, and furthermore, it generates duplicated code.
+
+  ```elixir
+  # Before refactoring:
+
+  def changeset(attrs) do
+    # Manual listing of schema fields
+    schema_fields = [:carrier_time, :carrier_date, :carrier_name, :carrier_number, :carrier_terminal, :carrier_type]
+  
+    %__MODULE__{}
+    |> cast(attrs, schema_fields)
+    |> validate_required(schema_fields, message: "Missing Field")
+  end
+  ```
+
+  We can refactor the field listing by replacing the manual list with a call to the Ecto `__schema__/1` function. When we call this function with the atom `:fields` as a parameter, it returns the list of all non-virtual field names, which is exactly the same list we created manually before the refactoring.
+
+  ```elixir
+  # After refactoring:
+
+  def changeset(attrs) do
+  
+    schema_fields = __schema__(:fields)  #<-- returns dynamically the list of schema fields!
+  
+    %__MODULE__{}
+    |> cast(attrs, schema_fields)
+    |> validate_required(schema_fields, message: "Missing Field")
+  end
+  ```
+
+  Although simple, this refactoring brings many improvements to the code quality. If the database schema is altered, for instance, the above code will continue to work for all fields in the schema without the need for additional modifications.
+
+  This example is based on a original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Pipeline using "with"
+
+* __Category:__ Elixir-specific Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ When conditional statements, such as `if..else` and `case`, are used in a nested manner to create sequences of function calls, the code can become confusing and have poor readability. In these situations, we can replace the use of nested conditionals with a kind of function call pipeline using a `with` statement. This refactoring enforces the use of pattern matching at each function call, interrupting the pipeline if any pattern does not match. Additionally, it has the potential to enhance code readability without modifying the signatures (heads) of the involved functions, making this refactoring less prone to breaking changes compared to [Convert nested conditionals to pipeline](#convert-nested-conditionals-to-pipeline).
+
+* __Examples:__ In the following code, the function `update_game_state/3` uses nested conditional statements to control the flow of a sequence of function calls to `valid_move/2`, `players_turn/2`, and `play_turn/3`. All these sequentially called functions have a return pattern of `{:ok, _}` or `{:error, _}`, which is common in Elixir code.
+
+  ```elixir
+  # Before refactoring:
+
+  defp update_game_state(%{status: :started} = state, index, user_id) do
+    move = valid_move(state, index)
+    if move == :ok do
+      players_turn(state, user_id)
+      |> case do
+        {:ok, marker} -> {:ok, play_turn(state, index, marker)}
+        other         -> other
+      end
+    else
+      {:error, :invalid_move}
+  end
+  ```
+
+  Note that, although this code works perfectly, the nesting of conditionals used to ensure the safe invocation of the next function in the sequence makes the code confusing. Therefore, we can refactor it by replacing these nested conditional statements with a pipeline that uses a `with` statement, thereby reducing the number of lines of code and improving readability, while keeping the behavior and signature of all the involved functions intact.
+
+  ```elixir
+  # After refactoring:
+
+  defp update_game_state(%{status: :started} = state, index, user_id) do
+    with :ok           <- valid_move(state, index),
+        {:ok, marker}  <- players_turn(state, user_id),
+        new_state      =  play_turn(state, index, marker),
+     do: {:ok, new_state},
+     else:
+       (other -> other)
+  end  
+  ```
+
+  As is characteristic of the `with` statement, the next function in this pipeline will only be called if the pattern of the previous call matches. Otherwise, the pipeline is terminated, returning the error that prevented it from proceeding to completion.
+
+  This example is based on a original code by Gary Rennie. Source: [link](https://www.youtube.com/watch?v=V21DAKtY31Q)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Pipeline for database transactions
+
+* __Category:__ Elixir-specific Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ The `Ecto.Repo.transaction/2` function allows performing operations on the database, such as update and delete. The first parameter of this function can be an anonymous function or a data structure called `Ecto.Multi`. When we want to perform a sequence of operations on the database using only one call to `Ecto.Repo.transaction/2`, the use of an anonymous function as the first parameter of this function can impair code readability, making it confusing. This refactoring converts anonymous functions used to create a pipeline of operations into calls to `Ecto.Repo.transaction/2`, transforming them into instances of `Ecto.Multi`, a data structure used for grouping multiple Repo operations. The code generated by this refactoring becomes cleaner and, furthermore, it does not allow the execution of operations if the `Ecto.Multi` is invalid (i.e., if any of the changesets have errors).
+
+* __Examples:__ In the following code, the function `clear_challenges/2` makes a call to `Ecto.Repo.transaction/2` aiming to execute a sequence of update and delete operations on the database.
+
+  ```elixir
+  # Before refactoring:
+
+  def clear_challenges(user, age \\ 300) do
+    challenges = get_old_open_challenges(user, age)
+    count = length(challenges)
+
+    Repo.transaction(fn ->
+      with {:ok, user} <- update_refused_challenges(user, count),
+             delete_challenges(challenges),
+             stop_games(challenges),
+        do: user,
+        else: ({:error, reason} -> Repo.rollback(reason))
+    end)
+  end
+  ```
+
+  Note that before the refactoring, this call to `Ecto.Repo.transaction/2` uses a complex anonymous function as its first parameter. This anonymous function employs a `with` statement to structure a pipeline of operations, similar to [Pipeline using "with"](#pipeline-using-with). While this code works perfectly, in this context, we can enhance the readability of this database operations pipeline by replacing the anonymous function with the `Ecto.Multi` data structure, specifically designed for creating such pipelines. The following code presents the refactored version of the `clear_challenges/2` function.
+
+  ```elixir
+  # After refactoring:
+
+  def clear_challenges(user, age \\ 300) do
+    challenges = get_old_open_challenges(user, age)
+    count = length(challenges)
+    
+    params = %{refused_challenges: user.refused_challenges + count}
+    Ecto.Multi.new()
+    |> Ecto.Multi.update(:user, User.update_changeset(user, params))
+    |> Ecto.Multi.delete_all(:challenges, delete_challenges(challenges))
+    |> Ecto.Multi.run(:games, fn _ -> stop_games(challenges) end)
+    |> Repo.transaction()
+  end 
+  ```
+
+  This example is based on a original code by Gary Rennie. Source: [link](https://www.youtube.com/watch?v=V21DAKtY31Q)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Transform nested "if" statements into a "cond"
+
+* __Category:__ Elixir-specific Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ While code using nested ``if`` statements works, it can be verbose and not very maintainable in some situations. Elixir doesn’t have an ``else if`` construct, but it does have a statement called ``cond`` that is logically equivalent. This refactoring aims to transform multiple conditionals, implemented using nested ``if`` statements, into the use of a ``cond`` statement, leaving the code without complex indentations and therefore cleaner and more readable.
+
+* __Examples:__ In the following code, the `classify_bmi/2` function uses several nested `if..else` statements to classify the Body Mass Index (BMI) of an individual, calculated based on their weight and height.
+
+  ```elixir
+  # Before refactoring:
+  
+  def classify_bmi(weight, height) do
+    {status, bmi} = calculate_bmi(weight, height)
+
+    if status == :ok do
+      if bmi < 18.5 do 
+        "Underweight"
+      else 
+        if bmi < 25.0 do 
+          "Normal weight"
+        else 
+          if bmi < 30.0 do
+            "Overweight"
+          else
+            if bmi < 35.0 do
+              "Obesity grade 1"
+            else 
+              if bmi < 40.0 do 
+                "Obesity grade 2"
+              else 
+                "Obesity grade 3"
+              end
+            end
+          end
+        end
+      end
+    else
+      "Error in BMI calculation: #{bmi}"
+    end
+  end
+  ```
+
+  Although this code works well, it is unnecessarily large in terms of the number of lines, and it also has complex indentations, resulting in an unattractive and less maintainable appearance. In the following code, after refactoring the nested `if..else` statements into an Elixir `cond` statement, the `classify_bmi/2` function has a cleaner and more readable appearance.
+
+  ```elixir
+  # After refactoring:
+
+  def classify_bmi(weight, height) do
+    {status, bmi} = calculate_bmi(weight, height)
+
+    if status == :ok do
+      cond do
+        bmi < 18.5 -> "Underweight"
+        bmi < 25.0 -> "Normal weight"
+        bmi < 30.0 -> "Overweight"
+        bmi < 35.0 -> "Obesity grade 1"
+        bmi < 40.0 -> "Obesity grade 2"
+        true       -> "Obesity grade 3"
+      end
+    else
+      "Error in BMI calculation: #{bmi}"
+    end
+  end 
+  ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Explicit a double boolean negation
+
+* __Category:__ Elixir-specific Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ In Elixir, when we perform a double boolean negation, we cast anything truthy to ``true`` and anything non-truthy to ``false``. In other words, this will return ``false`` for ``false`` and ``nil``, and ``true`` for anything else. Although this approach may seem interesting initially, it can make the code less expressive by omitting the real intention of this operation. Therefore, to improve readability, we can replace double boolean negations by introducing a helper multi-clause function.
+
+* __Examples:__ In the following code, we can observe the behavior of double boolean negations applied to four distinct variables.
+
+  ```elixir
+  # Before refactoring:
+  
+  var_1 = true
+  var_2 = false
+  var_3 = nil
+  var_4 = 100
+
+  #...Use examples...
+  iex(1)> !!var_1
+  true
+  iex(2)> !!var_2
+  false
+  iex(3)> !!var_3
+  false
+  iex(4)> !!var_4
+  true
+  ```
+
+  To make our code more expressive, we can refactor the operations above by creating a multi-clause function that uses pattern matching to map all the behavioral possibilities of a double boolean negation. Below, we demonstrate this refactoring by creating the function `helper/1`. Note that this name is purely illustrative, so the function could be renamed to something that better represents its purpose, depending on the context.
+
+  ```elixir
+  # After refactoring:
+  
+  defmodule Foo do
+    def helper(nil), do: false
+    def helper(false), do: false
+    def helper(_), do: true
+  end 
+
+   #...Use examples...
+  iex(1)> Foo.helper(var_1)
+  true
+  iex(2)> Foo.helper(var_2)
+  false
+  iex(3)> Foo.helper(var_3)
+  false
+  iex(4)> Foo.helper(var_4)
+  true
+  ```
+
+  These examples are based on code written in Credo's official documentation. Source: [link](https://hexdocs.pm/credo/Credo.Check.Refactor.DoubleBooleanNegation.html)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Transform "if" statements using pattern matching into a "case"
+
+* __Category:__ Elixir-specific Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ Pattern matching is most effective for simple assignments within ``if`` and ``unless`` clauses. Although Elixir allows pattern matching in conditional tests performed by an ``if`` statement, it may compromise code readability when used for flow control purposes. If you need to match a condition and execute a different block when it's not met, it's advisable to use a ``case`` statement instead of combining pattern matching with an ``if`` statement. This refactoring, therefore, aims to carry out this type of code transformation.
+
+* __Examples:__ In the following code, an `if` statement is used in conjunction with pattern matching. In this situation, the `do_something/1` function is called if the pattern matches.
+
+  ```elixir
+  # Before refactoring:
+  
+  if {:ok, contents} = File.read("foo.txt") do
+    do_something(contents)
+  end
+  ```
+
+  As shown in the following code, we can refactor the previous code by replacing `if` statements that use pattern matching with an Elixir `case` statement, which is a more appropriate conditional for working alongside pattern matching. This refactoring also makes the code more flexible for future changes, as it opens the possibility to execute different code blocks when a pattern does not match, something that would not be possible using only an `if..else` statement.
+
+  ```elixir
+  # After refactoring:
+  
+  case File.read("foo.txt") do
+    {:ok, contents} -> do_something()
+    _               -> do_something_else()
+  end
+  ```
+
+  These examples are based on code written in Credo's official documentation. Source: [link](https://hexdocs.pm/credo/Credo.Check.Refactor.MatchInCondition.html)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Moving "with" clauses without pattern matching
+
+* __Category:__ Elixir-specific Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ Using ``with`` statements is recommended when you want to string together a series of pattern matches, stopping at the first one that fails. Although is possible to define a ``with`` statement using an initial or final clause that doesn't involve a ``<-`` operator (i.e., it doesn't match anything), it fails to leverage the advantages provided by the ``with``, potentially causing confusion. This refactoring aims to move these clauses that don't match anything to outside the ``with`` statement (for the initial ones) or place them inside the body of the ``with`` statement (for the final ones), thereby enhancing the code's focus and readability.
+
+* __Examples:__ In the following code, we have a `with` statement composed of four clauses. As we can observe, the first and last clauses do not involve matching specific patterns. In other words, they do not use the `<-` operator.
+
+  ```elixir
+  # Before refactoring:
+  
+  with ref = make_ref(),
+       {:ok, user} <- User.create(ref),
+       :ok <- send_email(user),
+       Logger.debug("Created user: #{inspect(user)}") do
+    user
+  end
+  ```
+
+  To enhance the readability of our code, keeping the clauses of the ``with`` statement focused solely on performing a pipeline of pattern matching, we can move the first clause of this code outside of the ``with`` statement and the last clause to inside its body, as shown in the following code. Note that although these clauses have been moved, the behavior of the code remains unchanged.
+
+  ```elixir
+  # After refactoring:
+  
+  ref = make_ref()  # moved outside of the 'with'
+
+  with {:ok, user} <- User.create(ref),
+       :ok <- send_email(user) do
+    Logger.debug("Created user: #{inspect(user)}")  # moved inside the body of the 'with'
+    user
+  end
+  ```
+
+  These examples are based on code written in Credo's official documentation. Source: [link](https://hexdocs.pm/credo/Credo.Check.Refactor.WithClauses.html)
+
+[▲ back to Index](#table-of-contents)
+___
+
 ## Traditional Refactorings
 
-Traditional refactorings are those mainly based on Fowler's catalog or that use programming features independent of languages or paradigms. In this section, 21 different refactorings classified as traditional are explained and exemplified:
+Traditional refactorings are those mainly based on Fowler's catalog or that use programming features independent of languages or paradigms. In this section, 25 different refactorings classified as traditional are explained and exemplified:
 
 ### Rename an identifier
 
@@ -1279,7 +1813,7 @@ ___
 
 ## Functional Refactorings
 
-Functional refactorings are those that use programming features characteristic of functional languages, such as pattern matching and higher-order functions. In this section, 24 different refactorings classified as functional are explained and exemplified:
+Functional refactorings are those that use programming features characteristic of functional languages, such as pattern matching and higher-order functions. In this section, 31 different refactorings classified as functional are explained and exemplified:
 
 ### Generalise a function definition
 
