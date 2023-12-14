@@ -40,6 +40,10 @@
   * [Introduce import](#introduce-import)
   * [Group Case Branches](#group-case-branches)
   * [Move expression out of case](#move-expression-out-of-case)
+  * [Simplifying test by truthness](#simplifying-test-by-truthness) [^**]
+  * [Reducing a boolean equality expression](#reducing-a-boolean-equality-expression) [^**]
+  * [Transform "unless" with negated conditions into "if"](#transform-unless-with-negated-conditions-into-if) [^**]
+  * [Replace conditional with polymorphism via Protocols](#replace-conditional-with-polymorphism-via-protocols) [^**]
 * __[Functional Refactorings](#functional-refactorings)__
   * [Generalise a function definition](#generalise-a-function-definition)
   * [Introduce pattern matching over a parameter](#introduce-pattern-matching-over-a-parameter)
@@ -165,7 +169,7 @@ ___
   currency = Map.get(price, "currency", "USD")
   ```
 
-  This example is based on a original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
+  This example is based on an original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -215,7 +219,7 @@ ___
   location = Map.take(pickup, ["latitude", "longitude"])
   ```
 
-  This example is based on a original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
+  This example is based on an original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -263,7 +267,7 @@ ___
     end)
   ```
 
-  This example is based on a original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
+  This example is based on an original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -321,7 +325,7 @@ ___
 
   Although simple, this refactoring brings many improvements to the code quality. If the database schema is altered, for instance, the above code will continue to work for all fields in the schema without the need for additional modifications.
 
-  This example is based on a original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
+  This example is based on an original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -360,17 +364,18 @@ ___
 
   defp update_game_state(%{status: :started} = state, index, user_id) do
     with :ok           <- valid_move(state, index),
-        {:ok, marker}  <- players_turn(state, user_id),
-        new_state      =  play_turn(state, index, marker),
-     do: {:ok, new_state},
-     else:
-       (other -> other)
+         {:ok, marker} <- players_turn(state, user_id),
+         new_state     =  play_turn(state, index, marker) do
+      {:ok, new_state}
+    else
+      (other -> other)
+    end
   end  
   ```
 
   As is characteristic of the `with` statement, the next function in this pipeline will only be called if the pattern of the previous call matches. Otherwise, the pipeline is terminated, returning the error that prevented it from proceeding to completion.
 
-  This example is based on a original code by Gary Rennie. Source: [link](https://www.youtube.com/watch?v=V21DAKtY31Q)
+  This example is based on an original code by Gary Rennie. Source: [link](https://www.youtube.com/watch?v=V21DAKtY31Q)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -420,7 +425,7 @@ ___
   end 
   ```
 
-  This example is based on a original code by Gary Rennie. Source: [link](https://www.youtube.com/watch?v=V21DAKtY31Q)
+  This example is based on an original code by Gary Rennie. Source: [link](https://www.youtube.com/watch?v=V21DAKtY31Q)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -575,7 +580,7 @@ ___
   # After refactoring:
   
   case File.read("foo.txt") do
-    {:ok, contents} -> do_something()
+    {:ok, contents} -> do_something(contents)
     _               -> do_something_else()
   end
   ```
@@ -1808,6 +1813,223 @@ ___
   iex(2)> Foo.bar(false, [6, 5, 4, 3, 2, 1])
   true
   ```
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Simplifying test by truthness
+
+* __Category:__ Traditional Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ When we know that a given data can have a ``nil`` value and we need to return a default value if that data is indeed ``nil``, instead of using `is_nil/1` and an ``if-else`` block to test this condition and return the required value, we can utilize a short-circuit operator `||` based on truthness conditions. This refactoring reduces the number of lines required for such an operation, maintaining clean and self-explanatory code.
+
+* __Examples:__ In the following code, we use the built-in Elixir function `is_nil/1` to check if the value of ``price`` is `nil` and then return a default value if that is true. Otherwise, the original value of ``price`` is returned.
+
+  ```elixir
+  # Before refactoring:
+
+  def default(price) do
+    if is_nil(price) do
+      "$100"
+    else
+      price
+    end
+  end
+  ```
+
+  We can refactor the `default/1` function by simplifying the null check for `price`, using only a test based on truthness conditions, as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  def default(price) do
+    price || "$100"
+  end
+  ```
+
+  In Elixir, the atoms `nil` and `false` are treated as *falsy* values, whereas everything else is treated as a *truthy* value. When we use a short-circuit operator `||` based on truthiness conditions, it returns the first expression that isn't *falsy*, thus the refactored code preserves the behavior of the original.
+
+  This example is based on an original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Reducing a boolean equality expression
+
+* __Category:__ Traditional Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ When dealing with a boolean expression consisting of multiple equality comparisons involving the same variable and logical ``or`` operators, we can reduce the number of lines of code and enhance readability by utilizing the `in` operator and a list containing all possible valid values for the variable. The advantages of this refactoring are particularly derived from the removal of partially duplicated code.
+
+* __Examples:__ In the following code, we have a boolean expression that checks if an `user` holds any of the four possible positions. If it is true for any of the positions, the `do_something/0` function is called. Otherwise, the code invokes the `do_something_else/0` function.
+
+  ```elixir
+  # Before refactoring:
+
+  if user == "admin" or user == "super_admin" or user == "agent" or user == "super_agent" do
+    do_something()
+  else
+    do_something_else()
+  end
+  ```
+
+  As shown next, we can refactor this code by reducing the size of the boolean expression in question and improving readability through the removal of duplicated code.
+
+  ```elixir
+  # After refactoring:
+
+  if user in ["admin", "super_admin", "agent", "super_agent"] do
+    do_something()
+  else
+    do_something_else()
+  end
+  ```
+
+  This example is based on an original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Transform "unless" with negated conditions into "if"
+
+* __Category:__ Traditional Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ In Elixir, an `unless` statement is equivalent to an `if` with its condition negated. Therefore, while it is possible, `unless` statements should be avoided with a negated condition. The reason behind this is not technical but human-centric. Comprehending that a code block is executed only when a negated condition is not met is both confusing and challenging. Therefore, this refactoring aims to replace ``unless`` statements with negated conditions with ``if`` statements, enhancing code readability.
+
+* __Examples:__ In the following code, we have an ``unless`` statement that uses logical negation in its conditional test.
+
+  ```elixir
+  # Before refactoring:
+
+  unless !allowed? do
+    proceed_as_planned()
+  end
+  ```
+
+  This type of code, although simple, can easily confuse a developer and lead to errors. To improve readability and eliminate potential sources of confusion, we can refactor this code by removing the logical negation (``!``) from the conditional and replacing the ``unless`` statement with an ``if`` statement, thereby preserving the same behavior as the original code.
+
+  ```elixir
+  # After refactoring:
+
+  if allowed? do
+    proceed_as_planned()
+  end
+  ```
+
+  These examples are based on code written in Credo's official documentation. Source: [link](https://hexdocs.pm/credo/Credo.Check.Refactor.NegatedConditionsInUnless.html)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Replace conditional with polymorphism via Protocols
+
+* __Category:__ Traditional Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ When dealing with a conditional statement that performs various actions based on data type or specific data properties, the code might become challenging to follow as the number of conditional possibilities increases. Additionally, if the same sequence of conditional statements, whether via ``if..else``, ``case``, or ``cond``, appears duplicated in the code, we may be forced to make changes in multiple parts of the code whenever a new check needs to be added to these duplicated sequences of conditional statements, characterizing the code smell [Switch Statements](https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#switch-statements). This refactoring is essentially a translation of the traditional Fowler's refactoring, but using ``protocols``, which are interfaces that can be implemented per data type in Elixir, introducing polymorphism to data structures and thus improving the code's extensibility to handle flow controls based on data types.
+
+* __Examples:__ In the following code, we have a module called `Bird`, which defines a `struct` composed of three properties. When the `plumage/1` function is called with a struct `%Bird{}` as a parameter, depending on the bird type and some other specific properties, its plumage is given a classification.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Bird do
+    defstruct type: nil, number_of_coconuts: 0, voltage: 0
+
+    def plumage(bird) do
+      case bird.type do
+        "EuropeanSwallow" -> "average"
+        "AfricanSwallow" ->
+          if bird.number_of_coconuts > 2 do
+            "tired"
+          else
+            "average"
+          end
+        "NorwegianParrot" ->
+          if bird.voltage > 100 do
+            "scorched"
+          else
+            "beautiful"
+          end
+      end
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Bird.plumage(%Bird{type: "AfricanSwallow", number_of_coconuts: 7})
+  "tired"
+  iex(2)> Bird.plumage(%Bird{type: "NorwegianParrot", voltage: 7000})
+  "scorched"
+  iex(3)> Bird.plumage(%Bird{type: "EuropeanSwallow"})
+  "average"
+  ```
+
+  Currently, this code classifies the plumage of only three distinct types of birds (*EuropeanSwallow*, *AfricanSwallow*, and *NorwegianParrot*). However, if new birds need to be classified in the future, this code may require significant changes, such as adding new properties to the `%Bird{}` struct definition and introducing additional conditional statements. If this same type of conditional logic repeats throughout the codebase, it may be necessary to make changes in many different places whenever a new bird type emerges, making the code less extensible, hard to maintain, and prone to errors.
+
+  To address this complexity and improve the design of this code, we can initially transform the `Bird` module into a ``protocol`` with the same name, containing the interface for the `plumage/1` function, as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  defprotocol Bird do
+    def plumage(bird)
+  end
+  ```
+  
+  Furthermore, each bird type should be transformed into its own module, defining its own `struct` and implementing the `Bird` *protocol*, thus specializing the `plumage/1` function for the peculiarities of each bird, as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule EuropeanSwallow do
+    defstruct number_of_coconuts: 0
+
+    defimpl Bird, for: EuropeanSwallow do
+      def plumage(%EuropeanSwallow{}), do: "average"
+    end
+  end
+
+  defmodule NorwegianParrot do
+    defstruct voltage: 0
+
+    defimpl Bird, for: NorwegianParrot do
+      def plumage(%NorwegianParrot{voltage: voltage}) when voltage > 100, do: "scorched"
+      def plumage(_), do: "beautiful"
+    end
+  end
+
+  defmodule AfricanSwallow do
+    defstruct number_of_coconuts: 0
+
+    defimpl Bird, for: AfricanSwallow do
+      def plumage(%AfricanSwallow{number_of_coconuts: num}) when num > 2, do: "tired"
+      def plumage(_), do: "average"
+    end
+  end
+  ```
+  
+  The calls to the `plumage/1` function, which is now polymorphic, should be updated to receive specific ``structs`` for each bird type instead of a generic `%Bird{}` parameter, as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  iex(1)> Bird.plumage(%AfricanSwallow{number_of_coconuts: 7})
+  "tired"
+  iex(2)> Bird.plumage(%NorwegianParrot{voltage: 7000})
+  "scorched"
+  iex(3)> Bird.plumage(%EuropeanSwallow{})                    
+  "average"
+  ```
+  
+  After this refactoring, whenever we need to classify the plumage of a new bird type, we only need to create a module for that new type and implement the `Bird` protocol in it.
+
+  This example is based on an original code by Zack Kayser. Source: [link](https://launchscout.com/blog/refactoring-patterns-in-elixir-replace-conditional-with-polymorphism-via-protocols-part-2)
 
 [▲ back to Index](#table-of-contents)
 ___
