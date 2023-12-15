@@ -69,6 +69,12 @@
   * [Nested list functions to comprehension](#nested-list-functions-to-comprehension)
   * [List comprehension simplifications](#list-comprehension-simplifications)
   * [Closure conversion](#closure-conversion) [^*]
+  * [Replace pipeline with a function](#replace-pipeline-with-a-function) [^**]
+  * [Remove single pipe](#remove-single-pipe) [^**]
+  * [Simplifying pattern matching in clauses](#simplifying-pattern-matching-in-clauses) [^**]
+  * [Improving list appending performance](#improving-list-appending-performance) [^**]
+  * [Convert nested conditionals to pipeline](#convert-nested-conditionals-to-pipeline) [^**]
+  * [Replacing recursion with a higher-level construct](#replacing-recursion-with-a-higher-level-construct) [^**]
 * __[Erlang-Specific Refactorings](#erlang-specific-refactorings)__
   * [Generate function specification](#generate-function-specification)
   * [From defensive to non-defensive programming style](#from-defensive-to-non-defensive-programming-style)
@@ -90,7 +96,7 @@
 
 [Elixir][Elixir] is a functional programming language whose popularity is on the rise in the industry <sup>[link][ElixirInProduction]</sup>. As no known studies have explored refactoring strategies for code implemented with this language, we reviewed scientific literature seeking refactoring strategies in other functional languages. The found refactorings were analyzed, filtering only those directly compatible or that could be adapted for Elixir code. As a result of this investigation, we have initially proposed a catalog of 55 refactorings for Elixir systems.
 
-After that, we scoured websites, blogs, forums, and videos (grey literature review), looking for specific refactorings for Elixir that are discussed by its developers. With this investigation, the catalog was expanded to 77 refactorings. These refactorings are categorized into four different groups ([Elixir-specific](#elixir-specific-refactorings), [traditional](#traditional-refactorings), [functional](#functional-refactorings), and [Erlang-specific](#erlang-specific-refactorings)), according to the programming features required in code transformations. This catalog of Elixir refactorings is presented below. Each refactoring is documented using the following structure:
+After that, we scoured websites, blogs, forums, and videos (grey literature review), looking for specific refactorings for Elixir that are discussed by its developers. With this investigation, the catalog was expanded to 76 refactorings. These refactorings are categorized into four different groups ([Elixir-specific](#elixir-specific-refactorings), [traditional](#traditional-refactorings), [functional](#functional-refactorings), and [Erlang-specific](#erlang-specific-refactorings)), according to the programming features required in code transformations. This catalog of Elixir refactorings is presented below. Each refactoring is documented using the following structure:
 
 * __Name:__ Unique identifier of the refactoring. This name is important to facilitate communication between developers;
 * __Category:__ Scope of refactoring in relation to its application coverage;
@@ -2036,7 +2042,7 @@ ___
 
 ## Functional Refactorings
 
-Functional refactorings are those that use programming features characteristic of functional languages, such as pattern matching and higher-order functions. In this section, 31 different refactorings classified as functional are explained and exemplified:
+Functional refactorings are those that use programming features characteristic of functional languages, such as pattern matching and higher-order functions. In this section, 30 different refactorings classified as functional are explained and exemplified:
 
 ### Generalise a function definition
 
@@ -3271,6 +3277,307 @@ ___
   ```
 
   Note that this refactored code still presents opportunities to apply of other refactoring strategies. Since the parameter of `generate_sum/1` is no longer needed as it is always ignored within the function, we can apply [Add or remove a parameter](#add-or-remove-a-parameter) to `generate_sum/1`, transforming it into `generate_sum/0`. Additionally, we can use [Rename an identifier](#rename-an-identifier) to update the name of the variable `add_8`, responsible for binding the anonymous function returned by the higher-order function. As both values summed by the anonymous function are now defined at the time of its call, the name `add_8` no longer makes sense.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Replace pipeline with a function
+
+* __Category:__ Functional Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ When utilizing a pipeline composed of built-in higher-order functions to transform data, we may unnecessarily generate large and inefficient code. This refactoring aims to replace this kind of pipeline with a function call that composes it or by invoking another built-in function with equivalent behavior. In both cases, this refactoring will reduce the number of iterations needed to perform transformations on the data, thus improving the code's performance and enhancing its readability.
+
+* __Examples:__ In the following code, we are using a pipeline composed of chained calls to `Enum.filter/2 |> Enum.count/1` with the goal of counting how many elements in the original list are multiples of three.
+
+  ```elixir
+  # Before refactoring:
+
+  list = Enum.to_list(1..1_000_000)
+
+  list
+  |> Enum.filter(&(rem(&1, 3) == 0))
+  |> Enum.count()
+  ```
+
+  Although this code is correct, it can be refactored by replacing this pipeline with a single call to the `Enum.count/2` function, preserving the same behavior as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  list = Enum.to_list(1..1_000_000)
+
+  Enum.count(list, &(rem(&1, 3) == 0))
+  ```
+  
+  In addition to reducing the code volume, thereby improving readability, the refactored version has better performance than the original, as demonstrated by the benchmarking below conducted with the [Benchee](https://github.com/bencheeorg/benchee) library in Elixir.
+
+  ```bash
+  Operating System: macOS
+  CPU Information: Intel(R) Core(TM) i7-4578U CPU @ 3.00GHz
+  Number of Available Cores: 4
+  Available memory: 16 GB
+  Elixir 1.14.3
+  Erlang 25.2
+
+  Benchmark suite executing with the following configuration:
+  warmup: 2 s
+  time: 5 s
+  memory time: 0 ns
+  reduction time: 0 ns
+  parallel: 4
+  inputs: none specified
+  Estimated total run time: 14 s
+
+  Benchmarking original ...
+  Benchmarking refactored ...
+
+  Name                 ips        average  deviation         median         99th %
+  refactored         28.38       35.24 ms    ±21.72%       33.25 ms       60.06 ms
+  original           19.39       51.56 ms    ±47.66%       44.65 ms      171.97 ms
+
+  Comparison: 
+  refactored         28.38
+  original           19.39 - 1.46x slower +16.32 ms
+  ```
+
+  The reason for this performance difference is that separate calls the functions ``Enum.filter/2 |> Enum.count/1`` in a pipeline require two iterations on each transformed data, while it is possible to perform just one iteration on each data with the replacement proposed by the refactoring.
+
+  This same type of refactoring can be applied to the following pipelines:
+
+  - ``Enum.into/3`` is better than ``Enum.map/2 |> Enum.into/2``
+  - ``Enum.map_join/3`` is better than ``Enum.map/2 |> Enum.join/2``
+  - One ``Enum.map/2`` is better than ``Enum.map/2 |> Enum.map/2``
+  - One ``Enum.filter/2`` is better than ``Enum.filter/2 |> Enum.filter/2``
+  - One ``Enum.reject/2`` is better than ``Enum.reject/2 |> Enum.reject/2``
+  - One ``Enum.filter/2`` is better than ``Enum.filter/2 |> Enum.reject/2``
+
+  These examples are based on code written in Credo's official documentation. Source: [link](https://hexdocs.pm/credo/Credo.Check.Refactor.FilterCount.html)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Remove single pipe
+
+* __Category:__ Functional Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ In Elixir and other languages like F#, pipes (`|>`) can be used to chain function calls, always passing the result of the previous call as the first parameter to the subsequent one. This feature can help improve the readability of code involving function composition. Although pipes can be very useful for the described purpose, they can be used unnecessarily and excessively, deviating from the intended use of this feature. This refactoring aims to remove pipes that don't involve multiple chained function calls, i.e., those that have only two members, with the first being a variable or a zero-arity function, followed by a function call with arity at least one. These removed pipes, called *__single pipes__*, are replaced by a simple call to the function with arity at least one that was its last member, thereby providing cleaner and more readable code.
+
+* __Examples:__ In the following code, a call to the `Enum.reverse/1` function is performed using a single pipe unnecessarily.
+
+  ```elixir
+  # Before refactoring:
+
+  list = [1,2,3,4]
+
+  list |> Enum.reverse()  # <-- single pipe!
+  ```
+
+  To simplify this code, the refactoring will replace the single pipe with a direct call to the `Enum.reverse/1` function, preserving the behavior of the original code, as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  list = [1,2,3,4]
+
+  Enum.reverse(list)
+  ```
+
+  These examples are based on code written in Recode's official documentation. Source: [link](https://hexdocs.pm/recode/Recode.Task.SinglePipe.html)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Simplifying pattern matching in clauses
+
+* __Category:__ Functional Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ In Elixir and other functional languages, it is possible to use pattern matching to extract values in a function clause. When using pattern matching to perform deep extraction in nested ``structs``, we may create unnecessarily messy and hard-to-understand code. With this refactoring, we can simplify this kind of extraction by performing pattern matching only with the outermost ``struct`` in the nesting, instead of matching patterns with very internal ``structs``. This transformation improves code readability and reduces its size.
+
+* __Examples:__ In the following code, the function `find_favorite_pet/1` takes a `%Post{}` struct as a parameter and uses pattern matching in the clause to extract the favorite `pet` of the author from a comment on the post. This value is deeply nested within the existing ``struct`` nesting in the definition of `%Post{}`.
+
+  ```elixir
+  # Before refactoring:
+
+  def find_favorite_pet(%Post{comment: %Comment{author: %Author{favorite_pet: pet}}}) do
+    pet
+  end
+  ```
+
+  With this refactoring, we can simplify the clause of the `find_favorite_pet/1` function by performing pattern matching only with `%Post{}`, which is the outermost ``struct`` in the nesting. To access the value of the ``favorite_pet``, considering that all keys in structs are ``atoms``, we can simply perform a chaining of *strict access* to the nested values, as shown below.
+
+  ```elixir
+  # After refactoring:
+
+  def find_favorite_pet(%Post{} = post) do
+    post.comment.author.favorite_pet
+  end
+  ```
+
+  This example is based on an original code by David Lucia. Source: [link](https://www.youtube.com/watch?v=wvfhrvAFOoQ)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Improving list appending performance
+
+* __Category:__ Functional Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ When we add an element to the end of the list, to *__ensure data immutability__*, Elixir will duplicate the entire original list, as each of its elements needs to point to a new memory area. Consequently, frequent concatenations at the end of a list can lead to significant memory consumption and hinder performance due to the need to recreate the list many times. With the aim of improving code performance during the concatenation of new elements into a list, this refactoring seeks to replace *tail concatenations* with *head concatenations*, increasing the amount of shared memory between the lists.
+
+* __Examples:__ In the following code, we are concatenating a new element to the end of a list composed of `5_000` elements, which will result in the duplication of the entire original list in memory.
+
+  ```elixir
+  # Before refactoring:
+
+  list = Enum.to_list(1..5_000)
+
+  new_list = list ++ [new_element]  # <-- tail concatenation
+  ```
+
+  With this refactoring, we simply modify the position where the concatenation of a new element in the list is performed, shifting it to the beginning of the list. This allows for much more memory sharing between the lists and, consequently, improves performance.
+
+  ```elixir
+  # After refactoring:
+
+  list = Enum.to_list(1..5_000)
+
+  new_list = [new_element] ++ list # <-- head concatenation
+  ```
+
+  The performance difference between tail and head concatenations can be better visualized by the benchmarking below conducted with the [Benchee](https://github.com/bencheeorg/benchee) library in Elixir. Here, we can observe that the refactored version of the code exhibits significantly superior performance.
+
+  ```bash
+  Operating System: macOS
+  CPU Information: Intel(R) Core(TM) i7-4578U CPU @ 3.00GHz
+  Number of Available Cores: 4
+  Available memory: 16 GB
+  Elixir 1.14.3
+  Erlang 25.2
+
+  Benchmark suite executing with the following configuration:
+  warmup: 2 s
+  time: 5 s
+  memory time: 0 ns
+  reduction time: 0 ns
+  parallel: 4
+  inputs: none specified
+  Estimated total run time: 14 s
+
+  Benchmarking head_concatenation ...
+  Benchmarking tail_concatenation ...
+
+  Name                         ips        average  deviation         median         99th %
+  head_concatenation        5.60 M       0.179 μs ±11846.40%       0.148 μs       0.170 μs
+  tail_concatenation      0.0260 M       38.43 μs   ±431.79%       21.57 μs      104.06 μs
+
+  Comparison: 
+  head_concatenation        5.60 M
+  tail_concatenation      0.0260 M - 215.31x slower +38.25 μs
+  ```
+
+* __Side-conditions:__ It is important to note that for this refactoring to be applied without altering the code's behavior, the order of elements in the list should not be important for other parts of the system.
+
+  These examples are based on code written in Credo's official documentation. Source: [link](https://hexdocs.pm/credo/Credo.Check.Refactor.AppendSingleItem.html)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Convert nested conditionals to pipeline
+
+* __Category:__ Functional Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ When conditional statements, such as `if..else` and `case`, are nested to create sequences of function calls, the code can become confusing and have poor readability. In these situations, we can adapt these functions by employing [Add or remove a parameter](#add-or-remove-a-parameter) and [Introduce pattern matching over a parameter](#introduce-pattern-matching-over-a-parameter). Then we can place the calls to these modified functions in a pipeline using the Elixir pipe operator (``|>``). This is, therefore, a composite refactoring that has the potential to enhance the readability of code. This refactoring is an alternative to the [Pipeline using "with"](#pipeline-using-with).
+
+* __Examples:__ In the following code, the function `update_game_state/3` uses nested conditional statements to control the flow of a sequence of function calls to `valid_move/2`, `players_turn/2`, and `play_turn/3`. All these sequentially called functions have a return pattern of `{:ok, _}` or `{:error, _}`, which is common in Elixir code.
+
+  ```elixir
+  # Before refactoring:
+
+  defp update_game_state(%{status: :started} = state, index, user_id) do
+    move = valid_move(state, index)
+    if move == :ok do
+      players_turn(state, user_id)
+      |> case do
+        {:ok, marker} -> {:ok, play_turn(state, index, marker)}
+        other         -> other
+      end
+    else
+      {:error, :invalid_move}
+    end
+  end
+  ```
+
+  Note that, although this code works perfectly, the nesting of conditionals used to ensure the safe invocation of the next function in the sequence makes the code confusing. Therefore, we can refactor it by replacing these nested conditional statements with a pipeline using pipe operators (`|>`), thereby reducing the number of lines of code and improving readability.
+
+  ```elixir
+  # After refactoring:
+
+  defp update_game_state(%{status: :started} = state, index, user_id) do
+    state
+    |> valid_move(index)
+    |> players_turn(state, user_id)
+    |> play_turn(state, index, marker)
+  end
+  ```
+
+* __Side-conditions:__ It is important to note that for this refactoring to be applied without altering the code's behavior, some functions in the pipeline had to have their signatures changed. Specifically, `players_turn/2` and `play_turn/3` became `players_turn/3` and `play_turn/4` respectively. The additional parameter in each of these functions is meant to receive the returns of the previous functions in the pipeline, which are in the patterns `{:ok, _}` or `{:error, _}`, and then guide their internal flows.
+
+  This example is based on an original code by Gary Rennie. Source: [link](https://www.youtube.com/watch?v=V21DAKtY31Q)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Replacing recursion with a higher-level construct
+
+* __Category:__ Functional Refactorings.
+
+* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+
+* __Motivation:__ When we read code that uses recursion, it's easy to focus primarily on its mechanics, in other words, the correction of recursion and whether it will pass every test thrown at it. However, due to the level of abstraction that recursive code can have, it can become less expressive, diverting the developer's focus from what should be more important: what the algorithm does and how it does it. This can occur due to the cognitive load required for understanding recursive code, especially when it was developed by someone else. Elixir, like other functional languages, provides many higher-order functions that enable iterations while hiding the details of recursion. This refactoring transforms recursive functions into calls to higher-order functions, making the code less verbose and more maintainable.
+
+* __Examples:__ In the following code, the module `Foo` has two recursive functions, `factorial/1` and `sum_list/1`. Both use recursion to perform iterations.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def factorial(0), do: 1
+    def factorial(n), do: n * factorial(n - 1)
+
+    def sum_list([]), do: 0
+    def sum_list([head | tail]) do
+      head + sum_list(tail)
+    end
+  end
+  ```
+
+  As shown in the following code, we can refactor these functions by replacing recursion with simple calls to `Enum.reduce/3`, which is a higher-order function. In addition to preserving their behavior, the refactored code becomes more concise and readable.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def factorial(n) do
+      Enum.reduce(1..n, 1, &(&1 * &2))
+    end
+
+    def sum_list(list) do
+      Enum.reduce(list, 0, &(&1 + &2))
+    end
+  end
+  ```
+
+  Although this example used the `Enum.reduce/3` function in the refactoring, Elixir has various other built-in higher-order functions that could be used to refactor code with different behaviors than those presented in this example.
 
 [▲ back to Index](#table-of-contents)
 ___
