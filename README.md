@@ -4168,7 +4168,7 @@ Our research is part of the initiative called __[Research with Elixir][ResearchW
   <br><br>
 </div>
 
-We were also supported by [Finbits](Finbits), a Brazilian Elixir-based fintech that is a supporter of this initiative:
+We were also supported by [Finbits](https://www.finbits.com.br/), a Brazilian Elixir-based fintech that is a supporter of this initiative:
 
 <div align="center">
   <a href="https://www.finbits.com.br/" alt="Click to learn more about Finbits!" title="Click to learn more about Finbits!"><img width="15%" src="https://github.com/lucasvegi/Elixir-Code-Smells/blob/main/etc/finbits.png?raw=true"></a>
