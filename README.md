@@ -96,7 +96,7 @@
 
 [Elixir][Elixir] is a functional programming language whose popularity is on the rise in the industry <sup>[link][ElixirInProduction]</sup>. As no known studies have explored refactoring strategies for code implemented with this language, we reviewed scientific literature seeking refactoring strategies in other functional languages. The found refactorings were analyzed, filtering only those directly compatible or that could be adapted for Elixir code. As a result of this investigation, we have initially proposed a catalog of 55 refactorings for Elixir systems.
 
-After that, we scoured websites, blogs, forums, and videos (grey literature review), looking for specific refactorings for Elixir that are discussed by its developers. With this investigation, the catalog was expanded to 76 refactorings. These refactorings are categorized into four different groups ([Elixir-specific](#elixir-specific-refactorings), [traditional](#traditional-refactorings), [functional](#functional-refactorings), and [Erlang-specific](#erlang-specific-refactorings)), according to the programming features required in code transformations. This catalog of Elixir refactorings is presented below. Each refactoring is documented using the following structure:
+After that, we scoured websites, blogs, forums, and videos (grey literature review), looking for specific refactorings for Elixir that are discussed by its developers. With this investigation, the catalog was expanded to *__76 refactorings__*. These refactorings are categorized into four different groups ([Elixir-specific](#elixir-specific-refactorings), [traditional](#traditional-refactorings), [functional](#functional-refactorings), and [Erlang-specific](#erlang-specific-refactorings)), according to the programming features required in code transformations. This catalog of Elixir refactorings is presented below. Each refactoring is documented using the following structure:
 
 * __Name:__ Unique identifier of the refactoring. This name is important to facilitate communication between developers;
 * __Category:__ Scope of refactoring in relation to its application coverage;
@@ -4159,14 +4159,21 @@ Please feel free to make pull requests and suggestions ([Issues][Issues] tab).
 
 ## Acknowledgments
 
-We are supported by __[Finbits][Finbits]__<sup>TM</sup>, a Brazilian Elixir-based fintech:
+Our research is part of the initiative called __[Research with Elixir][ResearchWithElixir]__ (in portuguese). We are supported by [Dashbit](https://dashbit.co/) and [Rebase](https://rebase.com.br/), which are companies that support this initiative:
 
 <div align="center">
-  <a href="https://www.finbits.com.br/" alt="Click to learn more about Finbits!" title="Click to learn more about Finbits!"><img width="20%" src="https://github.com/lucasvegi/Elixir-Code-Smells/blob/main/etc/finbits.png?raw=true"></a>
+  <a href="https://dashbit.co/" alt="Click to learn more about Dashbit!" title="Click to learn more about Dashbit!"><img width="23%" src="https://github.com/lucasvegi/Elixir-Refactorings/blob/main/etc/dashbit_logo.png?raw=true"></a>
+ <br><br>
+  <a href="https://rebase.com.br/" alt="Click to learn more about Rebase!" title="Click to learn more about Rebase!"><img width="23%" src="https://github.com/lucasvegi/Elixir-Refactorings/blob/main/etc/rebase_logo.png?raw=true"></a>
   <br><br>
 </div>
 
-Our research is also part of the initiative called __[Research with Elixir][ResearchWithElixir]__ (in portuguese).
+We were also supported by [Finbits](Finbits), a Brazilian Elixir-based fintech that is a supporter of this initiative:
+
+<div align="center">
+  <a href="https://www.finbits.com.br/" alt="Click to learn more about Finbits!" title="Click to learn more about Finbits!"><img width="15%" src="https://github.com/lucasvegi/Elixir-Code-Smells/blob/main/etc/finbits.png?raw=true"></a>
+  <br><br>
+</div>
 
 [▲ back to Index](#table-of-contents)
 
