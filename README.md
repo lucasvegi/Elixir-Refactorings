@@ -121,7 +121,7 @@ Elixir-specific refactorings are those that use programming features unique to t
 
 * __Category:__ Elixir-specific Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ In Elixir, when using an `alias` for multiple names from the same namespace, you can consolidate multi-instruction instructions per namespace. Although this programming practice is common and can reduce the number of lines of code, multi-aliases can make it harder to search for a dependency in large code bases. This refactoring aims to expand multi-alias instructions fused into one multi-instruction per namespace, transforming them into single alias instructions per name. This provides improvement in code readability and traceability.
 
@@ -151,7 +151,7 @@ ___
 
 * __Category:__ Elixir-specific Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ We often come across a situation where we expect a `Map` to have a certain key, and if not, we need to provide a default value. A commonly used alternative for such situations is using the built-in `Map.has_key?/2` function along with an `if...else` statement. Although this alternative works perfectly, it's possible to refactor this code using only the built-in `Map.get/3` function, making the code less verbose and more readable, while preserving the same behavior.
 
@@ -184,7 +184,7 @@ ___
 
 * __Category:__ Elixir-specific Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ When dealing with huge `Map` structures, there are occasions when we need to extract a subset of elements to form a new `Map`. Instead of manually creating this subset by individually accessing each of the desired key/value pairs from the original `Map`, with this refactoring, we can simply use the built-in `Map.take/2` function.
 
@@ -234,7 +234,7 @@ ___
 
 * __Category:__ Elixir-specific Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ Sometimes we need to update the format of a ``Map``, replacing the name given to a key but keeping the new key name associated with the original value. Instead of using ``Map.get/2``, ``Map.put/2``, and ``Map.delete/2`` functions together, which involves a lot of manual work and generates many lines of code, we can simply use the built-in ``Map.new/2`` function along with the use of multi-clause lambdas. This refactoring can significantly reduce the volume of lines of code, eliminating duplicated code and even making the code more resilient to typing-related errors.
 
@@ -282,7 +282,7 @@ ___
 
 * __Category:__ Elixir-specific Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ After defining a schema in Ecto, it's common to need to group fields for validations, such as those performed by the Ecto validator ``validate_required/3``. However, if we attempt to perform this grouping by manually implementing a list, there's a risk of making the code overly verbose, prone to typographical errors, and even subject to rework if the schema is modified in the future. Instead of relying on manually created lists, we can simply use the Ecto ``__schema__/1`` function, which returns the list of fields in the schema. With this refactoring, we can simplify the code, making it less prone to errors and more maintainable.
 
@@ -340,7 +340,7 @@ ___
 
 * __Category:__ Elixir-specific Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ When conditional statements, such as `if..else` and `case`, are used in a nested manner to create sequences of function calls, the code can become confusing and have poor readability. In these situations, we can replace the use of nested conditionals with a kind of function call pipeline using a `with` statement. This refactoring enforces the use of pattern matching at each function call, interrupting the pipeline if any pattern does not match. Additionally, it has the potential to enhance code readability without modifying the signatures (heads) of the involved functions, making this refactoring less prone to breaking changes compared to [Convert nested conditionals to pipeline](#convert-nested-conditionals-to-pipeline).
 
@@ -390,7 +390,7 @@ ___
 
 * __Category:__ Elixir-specific Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ The `Ecto.Repo.transaction/2` function allows performing operations on the database, such as update and delete. The first parameter of this function can be an anonymous function or a data structure called `Ecto.Multi`. When we want to perform a sequence of operations on the database using only one call to `Ecto.Repo.transaction/2`, the use of an anonymous function as the first parameter of this function can impair code readability, making it confusing. This refactoring converts anonymous functions used to create a pipeline of operations into calls to `Ecto.Repo.transaction/2`, transforming them into instances of `Ecto.Multi`, a data structure used for grouping multiple Repo operations. The code generated by this refactoring becomes cleaner and, furthermore, it does not allow the execution of operations if the `Ecto.Multi` is invalid (i.e., if any of the changesets have errors).
 
@@ -440,7 +440,7 @@ ___
 
 * __Category:__ Elixir-specific Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ While code using nested ``if`` statements works, it can be verbose and not very maintainable in some situations. Elixir doesn’t have an ``else if`` construct, but it does have a statement called ``cond`` that is logically equivalent. This refactoring aims to transform multiple conditionals, implemented using nested ``if`` statements, into the use of a ``cond`` statement, leaving the code without complex indentations and therefore cleaner and more readable.
 
@@ -510,7 +510,7 @@ ___
 
 * __Category:__ Elixir-specific Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ In Elixir, when we perform a double boolean negation, we cast anything truthy to ``true`` and anything non-truthy to ``false``. In other words, this will return ``false`` for ``false`` and ``nil``, and ``true`` for anything else. Although this approach may seem interesting initially, it can make the code less expressive by omitting the real intention of this operation. Therefore, to improve readability, we can replace double boolean negations by introducing a helper multi-clause function.
 
@@ -566,7 +566,7 @@ ___
 
 * __Category:__ Elixir-specific Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ Pattern matching is most effective for simple assignments within ``if`` and ``unless`` clauses. Although Elixir allows pattern matching in conditional tests performed by an ``if`` statement, it may compromise code readability when used for flow control purposes. If you need to match a condition and execute a different block when it's not met, it's advisable to use a ``case`` statement instead of combining pattern matching with an ``if`` statement. This refactoring, therefore, aims to carry out this type of code transformation.
 
@@ -600,7 +600,7 @@ ___
 
 * __Category:__ Elixir-specific Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ Using ``with`` statements is recommended when you want to string together a series of pattern matches, stopping at the first one that fails. Although is possible to define a ``with`` statement using an initial or final clause that doesn't involve a ``<-`` operator (i.e., it doesn't match anything), it fails to leverage the advantages provided by the ``with``, potentially causing confusion. This refactoring aims to move these clauses that don't match anything to outside the ``with`` statement (for the initial ones) or place them inside the body of the ``with`` statement (for the final ones), thereby enhancing the code's focus and readability.
 
@@ -1827,7 +1827,7 @@ ___
 
 * __Category:__ Traditional Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ When we know that a given data can have a ``nil`` value and we need to return a default value if that data is indeed ``nil``, instead of using `is_nil/1` and an ``if-else`` block to test this condition and return the required value, we can utilize a short-circuit operator `||` based on truthness conditions. This refactoring reduces the number of lines required for such an operation, maintaining clean and self-explanatory code.
 
@@ -1866,7 +1866,7 @@ ___
 
 * __Category:__ Traditional Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ When dealing with a boolean expression consisting of multiple equality comparisons involving the same variable and logical ``or`` operators, we can reduce the number of lines of code and enhance readability by utilizing the `in` operator and a list containing all possible valid values for the variable. The advantages of this refactoring are particularly derived from the removal of partially duplicated code.
 
@@ -1903,7 +1903,7 @@ ___
 
 * __Category:__ Traditional Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ In Elixir, an `unless` statement is equivalent to an `if` with its condition negated. Therefore, while it is possible, `unless` statements should be avoided with a negated condition. The reason behind this is not technical but human-centric. Comprehending that a code block is executed only when a negated condition is not met is both confusing and challenging. Therefore, this refactoring aims to replace ``unless`` statements with negated conditions with ``if`` statements, enhancing code readability.
 
@@ -1936,7 +1936,7 @@ ___
 
 * __Category:__ Traditional Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ When dealing with a conditional statement that performs various actions based on data type or specific data properties, the code might become challenging to follow as the number of conditional possibilities increases. Additionally, if the same sequence of conditional statements, whether via ``if..else``, ``case``, or ``cond``, appears duplicated in the code, we may be forced to make changes in multiple parts of the code whenever a new check needs to be added to these duplicated sequences of conditional statements, characterizing the code smell [Switch Statements](https://github.com/lucasvegi/Elixir-Code-Smells/tree/main/traditional#switch-statements). This refactoring is essentially a translation of the traditional Fowler's refactoring, but using ``protocols``, which are interfaces that can be implemented per data type in Elixir, introducing polymorphism to data structures and thus improving the code's extensibility to handle flow controls based on data types.
 
@@ -3228,7 +3228,7 @@ ___
 
 * __Category:__ Functional Refactorings.
 
-* __Note:__ This refactoring emerged from an extended Systematic Literature Review (SLR).
+* __Source:__ This refactoring emerged from an extended Systematic Literature Review (SLR).
 
 * __Motivation:__ This refactoring involves transforming __closures__ (*i.e.*, anonymous functions that access variables outside their scope) into functions that receive the referenced variables as parameters. This transformation is beneficial for code optimization, enhancing memory management, simplifying the code's logical understanding, and improving its readability.
 
@@ -3285,7 +3285,7 @@ ___
 
 * __Category:__ Functional Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ When utilizing a pipeline composed of built-in higher-order functions to transform data, we may unnecessarily generate large and inefficient code. This refactoring aims to replace this kind of pipeline with a function call that composes it or by invoking another built-in function with equivalent behavior. In both cases, this refactoring will reduce the number of iterations needed to perform transformations on the data, thus improving the code's performance and enhancing its readability.
 
@@ -3362,7 +3362,7 @@ ___
 
 * __Category:__ Functional Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ In Elixir and other languages like F#, pipes (`|>`) can be used to chain function calls, always passing the result of the previous call as the first parameter to the subsequent one. This feature can help improve the readability of code involving function composition. Although pipes can be very useful for the described purpose, they can be used unnecessarily and excessively, deviating from the intended use of this feature. This refactoring aims to remove pipes that don't involve multiple chained function calls, i.e., those that have only two members, with the first being a variable or a zero-arity function, followed by a function call with arity at least one. These removed pipes, called *__single pipes__*, are replaced by a simple call to the function with arity at least one that was its last member, thereby providing cleaner and more readable code.
 
@@ -3395,7 +3395,7 @@ ___
 
 * __Category:__ Functional Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ In Elixir and other functional languages, it is possible to use pattern matching to extract values in a function clause. When using pattern matching to perform deep extraction in nested ``structs``, we may create unnecessarily messy and hard-to-understand code. With this refactoring, we can simplify this kind of extraction by performing pattern matching only with the outermost ``struct`` in the nesting, instead of matching patterns with very internal ``structs``. This transformation improves code readability and reduces its size.
 
@@ -3428,7 +3428,7 @@ ___
 
 * __Category:__ Functional Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ When we add an element to the end of the list, to *__ensure data immutability__*, Elixir will duplicate the entire original list, as each of its elements needs to point to a new memory area. Consequently, frequent concatenations at the end of a list can lead to significant memory consumption and hinder performance due to the need to recreate the list many times. With the aim of improving code performance during the concatenation of new elements into a list, this refactoring seeks to replace *tail concatenations* with *head concatenations*, increasing the amount of shared memory between the lists.
 
@@ -3494,7 +3494,7 @@ ___
 
 * __Category:__ Functional Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ When conditional statements, such as `if..else` and `case`, are nested to create sequences of function calls, the code can become confusing and have poor readability. In these situations, we can adapt these functions by employing [Add or remove a parameter](#add-or-remove-a-parameter) and [Introduce pattern matching over a parameter](#introduce-pattern-matching-over-a-parameter). Then we can place the calls to these modified functions in a pipeline using the Elixir pipe operator (``|>``). This is, therefore, a composite refactoring that has the potential to enhance the readability of code. This refactoring is an alternative to the [Pipeline using "with"](#pipeline-using-with).
 
@@ -3541,7 +3541,7 @@ ___
 
 * __Category:__ Functional Refactorings.
 
-* __Note:__ This refactoring emerged from a Grey Literature Review (GLR).
+* __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
 * __Motivation:__ When we read code that uses recursion, it's easy to focus primarily on its mechanics, in other words, the correction of recursion and whether it will pass every test thrown at it. However, due to the level of abstraction that recursive code can have, it can become less expressive, diverting the developer's focus from what should be more important: what the algorithm does and how it does it. This can occur due to the cognitive load required for understanding recursive code, especially when it was developed by someone else. Elixir, like other functional languages, provides many higher-order functions that enable iterations while hiding the details of recursion. This refactoring transforms recursive functions into calls to higher-order functions, making the code less verbose and more maintainable.
 
