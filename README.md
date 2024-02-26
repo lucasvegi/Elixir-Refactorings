@@ -3914,7 +3914,7 @@ ___
 
       Although `Todo.Database` continues to be a singleton process, with this refactoring, each call to the `store/2` function will be handled by a different process introduced in `handle_cast/2`, allowing for greater scalability with multiple worker processes executing concurrently.
 
-      This example is based on an original code by Saša Jurić in available the book __"Elixir in Action, 2.ed"__.
+      This example is based on an original code by Saša Jurić available in the __"Elixir in Action, 2.ed."__ book.
 
 [▲ back to Index](#table-of-contents)
 ___
