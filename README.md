@@ -3348,6 +3348,8 @@ ___
 
   - ``Enum.into/3`` is better than ``Enum.map/2 |> Enum.into/2``
   - ``Enum.map_join/3`` is better than ``Enum.map/2 |> Enum.join/2``
+  - ``DateTime.utc_now/1`` is better than ``DateTime.utc_now/0 |> DateTime.truncate/1``
+  - ``NaiveDateTime.utc_now/1`` is better than ``NaiveDateTime.utc_now/0 |> NaiveDateTime.truncate/1``
   - One ``Enum.map/2`` is better than ``Enum.map/2 |> Enum.map/2``
   - One ``Enum.filter/2`` is better than ``Enum.filter/2 |> Enum.filter/2``
   - One ``Enum.reject/2`` is better than ``Enum.reject/2 |> Enum.reject/2``
@@ -3850,9 +3852,69 @@ ___
 
 * __Category:__ Erlang-Specific Refactorings.
 
-* __Motivation:__ This refactoring involves introducing or removing concurrent processes to achieve a more optimal mapping between parallel processes and parallel activities of the problem being solved.
+* __Motivation:__ This refactoring involves introducing or removing concurrent processes to achieve a more optimal mapping between parallel processes and parallel activities of the problem being solved. This can improve code readability or even eliminate bottlenecks, enabling greater scalability and better performance.
 
-* __Examples:__ An example of using this refactoring can be seen in removing the code smell [Code organization by process][Code organization by process]. Here, we have a code that previously used processes and message passing where a simpler function call would have sufficed. This refactoring allowed for the improvement of code quality without altering its behavior.
+* __Examples:__
+
+  1) An example of using this __*refactoring to remove concurrency*__ can be seen in eliminating the code smell [Code organization by process][Code organization by process]. Here, we have a code that previously used processes, callbacks, and message passing where a simpler plain module and a function call would have enough. This refactoring allowed for the improvement of code quality without altering its behavior.
+
+  2) On the other hand, an example of using this __*refactoring to introduce concurrency*__ can be seen in the following code. `Todo.Database` is a `GenServer` process that is part of a concurrent system. As can be seen in the implementation of its `start/0` function, it is a singleton, meaning there is only one `Todo.Database` process in the entire system. Since this process is responsible for providing access to the system's database for all its N different clients, bottlenecks or other issues can naturally occur. Imagine a situation where the number of calls to the `store/2` function is very large, to the point where this single `Todo.Database` process cannot handle the previous `store/2` call before the subsequent calls arrive for the same function. This could cause an overload of the `Todo.Database` mailbox, resulting in excessive memory usage and ultimately an overflow of the BEAM OS process where this system is executed.
+
+      ```elixir
+      # Before refactoring:
+
+      defmodule Todo.Database do
+        use GenServer
+        
+        ...
+
+        def start do
+          GenServer.start(__MODULE__, nil, name: __MODULE__) #<-- Singleton process!
+        end
+
+        def store(key, data) do
+          GenServer.cast(__MODULE__, {:store, key, data})
+        end
+
+        def handle_cast({:store, key, data}, state) do
+          key
+          |> file_name()
+          |> File.write!(:erlang.term_to_binary(data))
+
+          {:noreply, state}
+        end
+        
+        ...
+
+      end
+      ```
+
+      To avoid this bottleneck in `Todo.Database`, we can refactor the callback function `handle_cast/2`, introducing concurrency by a new ``Task`` process that will be responsible for handling calls to the `store/2` function.
+
+      ```elixir
+      # After refactoring:
+      
+      defmodule Todo.Database do
+        use GenServer
+        ...
+
+        def handle_cast({:store, key, data}, state) do
+          Task.start(fn ->     #<-- Concurrency Introduced!
+            key
+            |> file_name()
+            |> File.write!(:erlang.term_to_binary(data))
+          end)
+
+          {:noreply, state}
+        end
+
+        ...
+      end
+      ```
+
+      Although `Todo.Database` continues to be a singleton process, with this refactoring, each call to the `store/2` function will be handled by a different process introduced in `handle_cast/2`, allowing for greater scalability with multiple worker processes executing concurrently.
+
+      This example is based on an original code by Saša Jurić in available the book __"Elixir in Action, 2.ed"__.
 
 [▲ back to Index](#table-of-contents)
 ___
