@@ -75,6 +75,8 @@
   * [Improving list appending performance](#improving-list-appending-performance) [^**]
   * [Convert nested conditionals to pipeline](#convert-nested-conditionals-to-pipeline) [^**]
   * [Replacing recursion with a higher-level construct](#replacing-recursion-with-a-higher-level-construct) [^**]
+  * [Replace a nested conditional in a "case" statement with guards](#replace-a-nested-conditional-in-a-case-statement-with-guards) [^***]
+  * [Replace function call with raw value in a pipeline start](#replace-function-call-with-raw-value-in-a-pipeline-start) [^***]
 * __[Erlang-Specific Refactorings](#erlang-specific-refactorings)__
   * [Generate function specification](#generate-function-specification)
   * [From defensive to non-defensive programming style](#from-defensive-to-non-defensive-programming-style)
@@ -91,12 +93,13 @@
 
 [^*]: This refactoring emerged from an extended Systematic Literature Review (SLR).
 [^**]: This refactoring emerged from a Grey Literature Review (GLR).
+[^***]: This refactoring emerged from a Mining Software Repositories (MSR) study.
 
 ## Introduction
 
 [Elixir][Elixir] is a functional programming language whose popularity is on the rise in the industry <sup>[link][ElixirInProduction]</sup>. As no known studies have explored refactoring strategies for code implemented with this language, we reviewed scientific literature seeking refactoring strategies in other functional languages. The found refactorings were analyzed, filtering only those directly compatible or that could be adapted for Elixir code. As a result of this investigation, we have initially proposed a catalog of 55 refactorings for Elixir systems.
 
-After that, we scoured websites, blogs, forums, and videos (grey literature review), looking for specific refactorings for Elixir that are discussed by its developers. With this investigation, the catalog was expanded to *__76 refactorings__*. These refactorings are categorized into four different groups ([Elixir-specific](#elixir-specific-refactorings), [traditional](#traditional-refactorings), [functional](#functional-refactorings), and [Erlang-specific](#erlang-specific-refactorings)), according to the programming features required in code transformations. This catalog of Elixir refactorings is presented below. Each refactoring is documented using the following structure:
+Afterward, we scoured websites, blogs, forums, and videos (grey literature review), looking for specific refactorings for Elixir that its developers discuss. With this investigation, the catalog was expanded to 76 refactorings. Finally, 5 new refactorings emerged from a study mining software repositories (MSR) performed by us, so this catalog is constantly being updated and *__currently has 81 refactorings__*. These refactorings are categorized into four different groups ([Elixir-specific](#elixir-specific-refactorings), [traditional](#traditional-refactorings), [functional](#functional-refactorings), and [Erlang-specific](#erlang-specific-refactorings)), according to the programming features required in code transformations. This catalog of Elixir refactorings is presented below. Each refactoring is documented using the following structure:
 
 * __Name:__ Unique identifier of the refactoring. This name is important to facilitate communication between developers;
 * __Category:__ Scope of refactoring in relation to its application coverage;
@@ -115,7 +118,7 @@ Please feel free to make pull requests and suggestions ([Issues][Issues] tab). W
 
 ## Elixir-Specific Refactorings
 
-Elixir-specific refactorings are those that use programming features unique to this language. In this section, 11 different refactorings classified as Elixir-specific are explained and exemplified:
+Elixir-specific refactorings are those that use programming features unique to this language. In this section, 14 different refactorings classified as Elixir-specific are explained and exemplified:
 
 ### Alias expansion
 
@@ -2042,7 +2045,7 @@ ___
 
 ## Functional Refactorings
 
-Functional refactorings are those that use programming features characteristic of functional languages, such as pattern matching and higher-order functions. In this section, 30 different refactorings classified as functional are explained and exemplified:
+Functional refactorings are those that use programming features characteristic of functional languages, such as pattern matching and higher-order functions. In this section, 32 different refactorings classified as functional are explained and exemplified:
 
 ### Generalise a function definition
 
@@ -3580,6 +3583,116 @@ ___
   ```
 
   Although this example used the `Enum.reduce/3` function in the refactoring, Elixir has various other built-in higher-order functions that could be used to refactor code with different behaviors than those presented in this example.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Replace a nested conditional in a "case" statement with guards
+
+* __Category:__ Functional Refactorings.
+
+* __Source:__ This refactoring emerged from a Mining Software Repositories (MSR) study.
+
+* __Motivation:__ The `case` statements allow us to compare an expression against many different patterns until we find one that matches. When more complex checks need to be performed within `case` statements, it's possible to use other conditional instructions like `if..else` nested inside a ``case``. This refactoring aims to replace nested conditional statements within a `case` with the use of guards, maintaining the ability to perform more complex pattern matching checks while improving code readability.
+
+* __Examples:__ In the following code, the module `File.Stream` has a function `reduce/3` that uses a nested `if..else` statement within a `case` to perform a more complex pattern matching check.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule File.Stream do
+    def reduce(%{path: path, modes: modes}, acc, fun) do
+      start_fun =
+        fn ->
+          case :file.open(path, read_modes(modes)) do
+            {:ok, device} -> if :strip_bom in modes, do: strip_bom(device), else: device
+            {:error, reason} -> raise(File.Error, reason)
+          end
+        end
+      ...
+    end
+
+    ...
+
+  end
+  ```
+
+  As shown in the following code, we can refactor this function by replacing the nested `if..else` conditional within the `case` statement with a guard clause. Not only does this preserve the behavior, but it also makes the refactored code more concise and readable.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule File.Stream do
+    def reduce(%{path: path, modes: modes}, acc, fun) do
+      strip_bom? = :strip_bom in modes  #<- "Merge Expression" refactoring!
+
+      start_fun =
+        fn ->
+          case :file.open(path, read_modes(modes)) do
+            {:ok, device} when strip_bom? -> strip_bom(device) #<- Guard replacing nested conditional!
+            {:ok, device} -> device
+            {:error, reason} -> raise(File.Error, reason)
+          end
+        end
+      ...
+    end
+
+    ...
+
+  end
+  ```
+
+  Note that in this example, we performed a composite refactoring. In order to facilitate the replacement of the nested conditional command within the `case`, we also performed the [Merge expressions](#merge-expressions) refactoring to create the local variable `strip_bom?`.
+
+  This example is based on an original code by Andrea Leopardi. Source: [link](https://github.com/elixir-lang/elixir/pull/5702)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Replace function call with raw value in a pipeline start
+
+* __Category:__ Functional Refactorings.
+
+* __Source:__ This refactoring emerged from a Mining Software Repositories (MSR) study.
+
+* __Motivation:__ In Elixir and other functional languages such as F#, the pipe operator (``|>``) facilitates chaining function calls, consistently passing the return of one call as the initial parameter of the next. This functionality enhances the clarity of code employing function composition. While pipes can commence with a function call, they are often more readable when initiated with a ``raw`` value. This refactoring targets to change the beginning of a pipeline, extracting the initial parameter from the function call that originally starts the pipe and incorporating this value at the pipeline's start.
+
+* __Examples:__ In the following code, the module `Foo` has a function `bar/1` that takes a list as a parameter, doubles all the values ​​in the list, and then returns the smallest of them. Disregard any performance issues that this code may have and focus solely on the format of the function pipeline used to perform this operation. Before being refactored, this pipeline starts with a call to the `Enum.map/2` function instead of a ``raw`` value, which can make it less readable.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def bar(list) do
+      Enum.map(list, &(&1 * 2)) 
+      |> Enum.sort 
+      |> Enum.at(0)
+    end
+  end
+
+   #...Use example...
+  iex(1)> Foo.bar([10, 6, 90, 8, 3, 9])
+  6
+  ```
+
+  As demonstrated in the following code, we can refactor this function by extracting `list`, the first parameter of `Enum.map/2`, and placing this ``raw`` value at the beginning of the pipeline. Although the refactored code has one more line than its previous version, it is more readable because it makes it clearer which value will undergo a series of sequential operations in the pipeline.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def bar(list) do
+      list           #<- Raw value!
+      |> Enum.map(&(&1 * 2)) 
+      |> Enum.sort 
+      |> Enum.at(0)
+    end
+  end
+
+   #...Use example...
+  iex(1)> Foo.bar([10, 6, 90, 8, 3, 9])
+  6
+  ```
 
 [▲ back to Index](#table-of-contents)
 ___
