@@ -2026,7 +2026,7 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-## Move expression out of case
+### Move expression out of case
 
 * __Category:__ Traditional Refactoring.
 
@@ -3212,7 +3212,7 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-## Function clauses to/from case clauses
+### Function clauses to/from case clauses
 
 * __Category:__ Functional Refactorings.
 
@@ -3268,7 +3268,7 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-## Transform a body-recursive function to a tail-recursive
+### Transform a body-recursive function to a tail-recursive
 
 * __Category:__ Functional Refactorings.
 
@@ -4217,7 +4217,7 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-## Introduce/remove concurrency
+### Introduce/remove concurrency
 
 * __Category:__ Erlang-Specific Refactorings.
 
@@ -4288,7 +4288,7 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-## Add a tag to messages
+### Add a tag to messages
 
 * __Category:__ Erlang-Specific Refactorings.
 
@@ -4412,7 +4412,7 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-## Register a process
+### Register a process
 
 * __Category:__ Erlang-Specific Refactorings.
 
