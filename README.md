@@ -18,6 +18,9 @@
   * [Explicit a double boolean negation](#explicit-a-double-boolean-negation) [^**]
   * [Transform "if" statements using pattern matching into a "case"](#transform-if-statements-using-pattern-matching-into-a-case) [^**]
   * [Moving "with" clauses without pattern matching](#moving-with-clauses-without-pattern-matching) [^**]
+  * [Remove redundant last clause in "with"](#remove-redundant-last-clause-in-with) [^***]
+  * [Replace "Enum" collections with "Stream"](#replace-enum-collections-with-stream) [^***]
+  * [Generalise a process abstraction](#generalise-a-process-abstraction) [^***]
 * __[Traditional Refactorings](#traditional-refactorings)__
   * [Rename an identifier](#rename-an-identifier)
   * [Moving a definition](#moving-a-definition)
@@ -635,6 +638,259 @@ ___
   ```
 
   These examples are based on code written in Credo's official documentation. Source: [link](https://hexdocs.pm/credo/Credo.Check.Refactor.WithClauses.html)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Remove redundant last clause in "with"
+
+* __Category:__ Elixir-specific Refactorings.
+
+* __Source:__ This refactoring emerged from a Mining Software Repositories (MSR) study.
+
+* __Motivation:__ When the last clause of an ``with`` statement is composed of a pattern identical to the predefined value to be returned by the ``with`` in case all checked patterns match, this clause is considered *redundant*. In such situations, this last clause of the ``with`` can be removed, and the predefined value to be returned by the ``with`` should then be replaced by the expression that was checked in the redundant clause that was removed. This refactoring will maintain the same behavior of the code while making it less verbose and more readable.
+
+* __Examples:__ In the following code, the callback `handle_call/3` uses a `with` statement with a redundant last clause. Note that the pattern compared in the last clause is identical to the predefined value to be returned by the `with` in case all checked patterns match: `{:ok, conf}`.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Phoenix.LiveView.Channel do
+    use GenServer
+    ...
+
+    @impl true
+    def handle_call({@prefix, :fetch_upload_config, name, cid}, _from, state) do
+      read_socket(state, cid, fn socket, _ ->
+        result =
+          with {:ok, uploads} <- Map.fetch(socket.assigns, :uploads),
+               {:ok, conf} <- Map.fetch(uploads, name) do  #<- redundant last clause!
+            {:ok, conf}  #<- predefined value to be returned by the ``with``!
+          end
+
+        {:reply, result, state}
+      end)
+    end
+    ...
+  end
+  ```
+
+  As demonstrated in the following code, we can refactor this by removing the redundant last clause `{:ok, conf} <- Map.fetch(uploads, name)` and also replacing the predefined value to be returned with the expression `Map.fetch(uploads, name)`, which was previously checked in the removed redundant clause.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Phoenix.LiveView.Channel do
+    use GenServer
+    ...
+
+    @impl true
+    def handle_call({@prefix, :fetch_upload_config, name, cid}, _from, state) do
+      read_socket(state, cid, fn socket, _ ->
+        result =
+          with {:ok, uploads} <- Map.fetch(socket.assigns, :uploads) do
+            Map.fetch(uploads, name) #<- predefined value to be returned by the ``with``!
+          end
+
+        {:reply, result, state}
+      end)
+    end
+    ...
+  end
+  ```
+
+  This example is based on an original code refactored by ByeongUk Choi. Source: [link](https://github.com/phoenixframework/phoenix_live_view/pull/1958)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Replace "Enum" collections with "Stream"
+
+* __Category:__ Elixir-specific Refactorings.
+
+* __Source:__ This refactoring emerged from a Mining Software Repositories (MSR) study.
+
+* __Motivation:__ All the functions in the ``Enum`` module are __*eager*__. This means that when performing multiple operations with ``Enum``, each operation will generate an intermediate collection (e.g., ``lists`` or ``maps``) until we reach the result. On the other hand, Elixir provides the ``Stream`` module which supports __*lazy operations*__, so instead of generating intermediate collections, streams build a series of computations that are invoked only when we pass the underlying ``Stream`` to the ``Enum`` module. This refactoring suggests using the ``Stream`` module instead of the ``Enum`` module __*when multiple operations in large collections are performed together*__. This can significantly decrease the time to traverse the collections while keeping the same behavior.
+
+* __Examples:__ The code examples below illustrate this refactoring. Before the refactoring, the higher-order function ``sum_odd_numbers/2`` uses only ``Enum``'s functions to initially modify the values of a ``list``, filter all modified values that are odd, and then sum them up.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule Foo do
+    def sum_odd_numbers(list, odd?) do
+      list
+      |> Enum.map(&(&1 * 3))
+      |> Enum.filter(odd?)
+      |> Enum.sum()
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.sum_odd_numbers([1,2,3,4,5,6,7,8], &(rem(&1,2) != 0))
+  48
+  ```
+
+  Following the refactoring, ``sum_odd_numbers/2`` retains the same behavior but now uses some ``Stream`` functions instead of ``Enum``. Note that even after the refactoring, the `Enum.sum/1` function, which is the last operation in the pipeline, was kept in the code. Since `Stream` module functions are __*lazy operations*__, the computations accumulated in `Stream.map/2` and `Stream.filter/2` are only invoked when this `Stream` is passed to a function from the `Enum` module, in this case the `Enum.sum/1` function.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule Foo do
+    def sum_odd_numbers(list, odd?) do
+      list
+      |> Stream.map(&(&1 * 3))  #<- Replace "Enum" with "Stream"!
+      |> Stream.filter(odd?)    #<- Replace "Enum" with "Stream"!
+      |> Enum.sum()
+    end
+  end
+
+  #...Use examples...
+  iex(1)> Foo.sum_odd_numbers([1,2,3,4,5,6,7,8], &(rem(&1,2) != 0))
+  48
+  ```
+
+  By using the [Benchee](https://github.com/bencheeorg/benchee) library for conducting micro benchmarking in Elixir, we can highlight the performance improvement potential of this refactoring. In the following code, the `sum_odd_numbers/2` function is given illustrative names, `before_ref/1` and `after_ref/1`, to represent their respective `Enum` and `Stream` versions.
+
+  ```elixir
+  list = Enum.to_list(1..50_000_000)
+  odd? = fn x -> rem(x, 2) != 0 end
+
+  Benchee.run(%{
+    "enum" => fn -> Foo.before_ref(list, odd?) end,
+    "stream" => fn -> Foo.after_ref(list, odd?) end
+  }, parallel: 4, memory_time: 2)
+  ```
+
+  Note that for a list with fifty million elements, the `Stream` version, although it consumes more memory, can be about __*twelve times faster*__ than the `Enum` version.
+
+  ```bash
+  Operating System: Windows
+  CPU Information: Intel(R) Core(TM) i7-2670QM CPU @ 2.20GHz
+  Number of Available Cores: 8
+  Available memory: 11.95 GB
+  Elixir 1.16.0
+  Erlang 26.2.1
+
+  Benchmark suite executing with the following configuration:
+  warmup: 2 s
+  time: 5 s
+  memory time: 2 s
+  reduction time: 0 ns
+  parallel: 4
+  inputs: none specified
+  Estimated total run time: 18 s
+
+  Benchmarking enum ...
+  Benchmarking stream ...
+
+  Name             ips        average  deviation         median         99th %
+  stream         0.144      0.116 min     ±1.63%      0.116 min      0.117 min
+  enum          0.0123       1.36 min    ±49.35%       1.11 min       2.31 min
+
+  Comparison:
+  stream         0.144
+  enum          0.0123 - 11.76x slower +1.24 min
+
+  Memory usage statistics:
+
+  Name      Memory usage
+  stream         2.05 GB
+  enum           1.12 GB - 0.55x memory usage -0.93132 GB
+  ```
+
+  These examples are based on code written in Elixir's official documentation. Source: [link](https://hexdocs.pm/elixir/enumerable-and-streams.html)
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Generalise a process abstraction
+
+* __Category:__ Elixir-specific Refactorings.
+
+* __Source:__ This refactoring emerged from a Mining Software Repositories (MSR) study.
+
+* __Motivation:__ Elixir provides different types of process abstractions for distinct purposes. While the `Task` and `Agent` abstractions have very specific purposes, `GenServer` is a more generic process abstraction, therefore having the capability to do everything that `Task` and `Agent` can do, as well as having additional capabilities beyond these two specific abstractions. This refactoring aims to transform `Task` or `Agent` abstractions into `GenServer` when these specific-purpose abstractions are used beyond their suggested purposes. More specifically, this refactoring can be used to remove the code smell [GenServer Envy](https://github.com/lucasvegi/Elixir-Code-Smells?#genserver-envy). By using an appropriate process abstraction for the purpose of the code, we can even improve its readability.
+
+* __Examples:__ In the following code, the `DatabaseServer` module makes use of a `Task` abstraction to provide its clients with the ability to query a database using the interface function `get/2`. As can be observed in this example, this `Task` __*behaves like a long-running server process*__, frequently communicating with other client processes. This behavior is very different from the suggested purpose for `Tasks`, which typically should only perform a particular operation during their lifetime and then stop upon the completion of that operation without communication with other processes.
+
+  ```elixir
+  # Before refactoring:
+
+  defmodule DatabaseServer do
+    use Task
+
+    def start_link() do
+      Task.start_link(&loop/0)
+    end
+
+    defp loop() do
+      receive do
+        {:run_query, caller, query_def} ->
+          send(caller, {:query_result, run_query(query_def)})
+      end
+      loop()
+    end
+
+    def get(server_pid, query_def) do
+      send(server_pid, {:run_query, self(), query_def})
+      receive do
+        {:query_result, result} -> result
+      end
+    end
+
+    defp run_query(query_def) do
+      Process.sleep(1000)
+      "#{query_def} result"
+    end
+  end
+
+  #...Use examples...
+  iex(1)> {:ok, pid} = DatabaseServer.start_link()      
+  {:ok, #PID<0.161.0>}
+  iex(2)> DatabaseServer.get(pid, "query 1")
+  "query 1 result"
+  iex(3)> DatabaseServer.get(pid, "query 2") 
+  "query 2 result"
+  ```
+
+  Considering that the above code represents an instance of the code smell [GenServer Envy](https://github.com/lucasvegi/Elixir-Code-Smells?#genserver-envy), we can refactor it by generalizing the process abstraction used. In other words, we can transform this specific process abstraction (`Task`) into a generic process abstraction (`GenServer`). Note that although the process abstraction used has been replaced, the behavior of the code remains the same because the interfaces of the public functions have not been modified. Furthermore, the readability of the refactored code has improved, as it was no longer necessary to make explicit message passing and implement recursive functions to keep the process alive.
+
+  ```elixir
+  # After refactoring:
+
+  defmodule DatabaseServer do
+    use GenServer
+
+    def start_link() do
+      GenServer.start_link(__MODULE__, nil)
+    end
+
+    def get(server_pid, query_def) do
+      GenServer.call(server_pid,{:run_query, query_def})
+    end
+
+    defp run_query(query_def) do
+      Process.sleep(1000)
+      "#{query_def} result"
+    end
+
+    @impl
+    def handle_call({:run_query, query_def}, _, state) do
+      {:reply, run_query(query_def), state}
+    end
+  end
+
+  #...Use examples...
+  iex(1)> {:ok, pid} = DatabaseServer.start_link()      
+  {:ok, #PID<0.164.0>}
+  iex(2)> DatabaseServer.get(pid, "query 1")
+  "query 1 result"
+  iex(3)> DatabaseServer.get(pid, "query 2") 
+  "query 2 result"
+  ```
+
+  This example is based on an original code by Saša Jurić available in the __"Elixir in Action, 2. ed."__ book.
 
 [▲ back to Index](#table-of-contents)
 ___
