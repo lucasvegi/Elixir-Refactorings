@@ -86,7 +86,8 @@
   * [From meta to normal function application](#from-meta-to-normal-function-application)
   * [Remove unnecessary calls to length/1](#remove-unnecessary-calls-to-length1)
   * [Add type declarations and contracts](#add-type-declarations-and-contracts)
-  * [Introduce/remove concurrency](#introduceremove-concurrency)
+  * [Introduce concurrency](#introduce-concurrency)
+  * [Remove concurrency](#remove-concurrency)
   * [Add a tag to messages](#add-a-tag-to-messages)
   * [Register a process](#register-a-process)
   * [Behaviour extraction](#behaviour-extraction)
@@ -102,7 +103,7 @@
 
 [Elixir][Elixir] is a functional programming language whose popularity is on the rise in the industry <sup>[link][ElixirInProduction]</sup>. As no known studies have explored refactoring strategies for code implemented with this language, we reviewed scientific literature seeking refactoring strategies in other functional languages. The found refactorings were analyzed, filtering only those directly compatible or that could be adapted for Elixir code. As a result of this investigation, we have initially proposed a catalog of 55 refactorings for Elixir systems.
 
-Afterward, we scoured websites, blogs, forums, and videos (grey literature review), looking for specific refactorings for Elixir that its developers discuss. With this investigation, the catalog was expanded to 76 refactorings. Finally, 5 new refactorings emerged from a study mining software repositories (MSR) performed by us, so this catalog is constantly being updated and *__currently has 81 refactorings__*. These refactorings are categorized into four different groups ([Elixir-specific](#elixir-specific-refactorings), [traditional](#traditional-refactorings), [functional](#functional-refactorings), and [Erlang-specific](#erlang-specific-refactorings)), according to the programming features required in code transformations. This catalog of Elixir refactorings is presented below. Each refactoring is documented using the following structure:
+Afterward, we scoured websites, blogs, forums, and videos (grey literature review), looking for specific refactorings for Elixir that its developers discuss. With this investigation, the catalog was expanded to 76 refactorings. Finally, 6 new refactorings emerged from a study mining software repositories (MSR) performed by us, so this catalog is constantly being updated and *__currently has 82 refactorings__*. These refactorings are categorized into four different groups ([Elixir-specific](#elixir-specific-refactorings), [traditional](#traditional-refactorings), [functional](#functional-refactorings), and [Erlang-specific](#erlang-specific-refactorings)), according to the programming features required in code transformations. This catalog of Elixir refactorings is presented below. Each refactoring is documented using the following structure:
 
 * __Name:__ Unique identifier of the refactoring. This name is important to facilitate communication between developers;
 * __Category:__ Scope of refactoring in relation to its application coverage;
@@ -3955,7 +3956,7 @@ ___
 
 ## Erlang-Specific Refactorings
 
-Erlang-specific refactorings are those that use programming features unique to the Erlang ecosystem (e.g., OTP, typespecs, and behaviours). In this section, 10 different refactorings classified as Erlang-specific are explained and exemplified:
+Erlang-specific refactorings are those that use programming features unique to the Erlang ecosystem (e.g., OTP, typespecs, and behaviours). In this section, 11 different refactorings classified as Erlang-specific are explained and exemplified:
 
 ### Generate function specification
 
@@ -4217,73 +4218,84 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Introduce/remove concurrency
+### Introduce concurrency
 
 * __Category:__ Erlang-Specific Refactorings.
 
-* __Motivation:__ This refactoring involves introducing or removing concurrent processes to achieve a more optimal mapping between parallel processes and parallel activities of the problem being solved. This can improve code readability or even eliminate bottlenecks, enabling greater scalability and better performance.
+* __Note:__ Formerly known as "Introduce/remove concurrency".
 
-* __Examples:__
+* __Motivation:__ This refactoring involves introducing concurrent processes to achieve a more optimal mapping between parallel processes and parallel activities of the problem being solved. This eliminates bottlenecks by a better code design, enabling greater scalability and better performance.
 
-  1) An example of using this __*refactoring to remove concurrency*__ can be seen in eliminating the code smell [Code organization by process][Code organization by process]. Here, we have a code that previously used processes, callbacks, and message passing where a simpler plain module and a function call would have enough. This refactoring allowed for the improvement of code quality without altering its behavior.
+* __Examples:__ An example of using this __*refactoring to introduce concurrency*__ can be seen in the following code. `Todo.Database` is a `GenServer` process that is part of a concurrent system. As can be seen in the implementation of its `start/0` function, it is a singleton, meaning there is only one `Todo.Database` process in the entire system. Since this process is responsible for providing access to the system's database for all its N different clients, bottlenecks or other issues can naturally occur. Imagine a situation where the number of calls to the `store/2` function is very large, to the point where this single `Todo.Database` process cannot handle the previous `store/2` call before the subsequent calls arrive for the same function. This could cause an overload of the `Todo.Database` mailbox, resulting in excessive memory usage and ultimately an overflow of the BEAM OS process where this system is executed.
 
-  2) On the other hand, an example of using this __*refactoring to introduce concurrency*__ can be seen in the following code. `Todo.Database` is a `GenServer` process that is part of a concurrent system. As can be seen in the implementation of its `start/0` function, it is a singleton, meaning there is only one `Todo.Database` process in the entire system. Since this process is responsible for providing access to the system's database for all its N different clients, bottlenecks or other issues can naturally occur. Imagine a situation where the number of calls to the `store/2` function is very large, to the point where this single `Todo.Database` process cannot handle the previous `store/2` call before the subsequent calls arrive for the same function. This could cause an overload of the `Todo.Database` mailbox, resulting in excessive memory usage and ultimately an overflow of the BEAM OS process where this system is executed.
+  ```elixir
+  # Before refactoring:
 
-      ```elixir
-      # Before refactoring:
-
-      defmodule Todo.Database do
-        use GenServer
+  defmodule Todo.Database do
+    use GenServer
         
-        ...
+    ...
 
-        def start do
-          GenServer.start(__MODULE__, nil, name: __MODULE__) #<-- Singleton process!
-        end
+    def start do
+      GenServer.start(__MODULE__, nil, name: __MODULE__) #<-- Singleton process!
+    end
 
-        def store(key, data) do
-          GenServer.cast(__MODULE__, {:store, key, data})
-        end
+    def store(key, data) do
+      GenServer.cast(__MODULE__, {:store, key, data})
+    end
 
-        def handle_cast({:store, key, data}, state) do
-          key
-          |> file_name()
-          |> File.write!(:erlang.term_to_binary(data))
+    def handle_cast({:store, key, data}, state) do
+      key
+      |> file_name()
+      |> File.write!(:erlang.term_to_binary(data))
 
-          {:noreply, state}
-        end
+      {:noreply, state}
+    end
         
-        ...
+    ...
 
-      end
-      ```
+  end
+  ```
 
-      To avoid this bottleneck in `Todo.Database`, we can refactor the callback function `handle_cast/2`, introducing concurrency by a new ``Task`` process that will be responsible for handling calls to the `store/2` function.
+  To avoid this bottleneck in `Todo.Database`, we can refactor the callback function `handle_cast/2`, introducing concurrency by a new ``Task`` process that will be responsible for handling calls to the `store/2` function.
 
-      ```elixir
-      # After refactoring:
+  ```elixir
+  # After refactoring:
       
-      defmodule Todo.Database do
-        use GenServer
-        ...
+  defmodule Todo.Database do
+    use GenServer
+    ...
 
-        def handle_cast({:store, key, data}, state) do
-          Task.start(fn ->     #<-- Concurrency Introduced!
-            key
-            |> file_name()
-            |> File.write!(:erlang.term_to_binary(data))
-          end)
+    def handle_cast({:store, key, data}, state) do
+      Task.start(fn ->     #<-- Concurrency Introduced!
+        key
+        |> file_name()
+        |> File.write!(:erlang.term_to_binary(data))
+      end)
 
-          {:noreply, state}
-        end
+      {:noreply, state}
+    end
 
-        ...
-      end
-      ```
+    ...
+  end
+  ```
 
-      Although `Todo.Database` continues to be a singleton process, with this refactoring, each call to the `store/2` function will be handled by a different process introduced in `handle_cast/2`, allowing for greater scalability with multiple worker processes executing concurrently.
+  Although `Todo.Database` continues to be a singleton process, with this refactoring, each call to the `store/2` function will be handled by a different process introduced in `handle_cast/2`, allowing for greater scalability with multiple worker processes executing concurrently.
 
-      This example is based on an original code by Saša Jurić available in the __"Elixir in Action, 2. ed."__ book, where another possibility to introduce concurrency by using a pool of processes is also presented.
+  This example is based on an original code by Saša Jurić available in the __"Elixir in Action, 2. ed."__ book, where another possibility to introduce concurrency by using a pool of processes is also presented.
+
+[▲ back to Index](#table-of-contents)
+___
+
+### Remove concurrency
+
+* __Category:__ Erlang-Specific Refactorings.
+
+* __Note:__ Formerly known as "Introduce/remove concurrency".
+
+* __Motivation:__ This refactoring involves removing unnecessary concurrent processes and replacing them with Elixir regular modules. When processes are used to perform tasks that could be handled by regular modules, aside from compromising code readability, they can lead to excessive memory consumption and system bottlenecks due to the accumulation of unprocessed messages in the mailbox. Therefore, in addition to improving the code design and consequently its readability, this refactoring can enhance the overall performance of a system.
+
+* __Examples:__ An example of using this __*refactoring to remove concurrency*__ can be seen in eliminating the code smell [Code organization by process][Code organization by process]. Here, we have a code that previously used processes, callbacks, and message passing where a simpler regular module and a function call would have enough. This refactoring allowed for the improvement of code quality without altering its behavior.
 
 [▲ back to Index](#table-of-contents)
 ___
