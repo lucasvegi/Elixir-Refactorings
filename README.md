@@ -4110,7 +4110,7 @@ ___
 
 * __Category:__ Erlang-specific Refactorings.
 
-* __Motivation:__ In Elixir, lists are always linked. Therefore, the cost of each `length/1` function call is not constant but proportional to the size of the list passed as a parameter. Considering that this cost can be high, many `length/1` calls can be unnecessary, making the code inefficient. This refactoring aims to replace these unnecessary calls, improving the efficiency of the code without modifying its behavior.
+* __Motivation:__ In Elixir, lists are always linked. Therefore, the cost of each `length/1` function call is not constant but proportional to the size of the list passed as a parameter. Considering that this cost can be high, many `length/1` calls can be unnecessary, making the code inefficient. This refactoring aims to replace these unnecessary calls with pattern matching, improving the efficiency of the code without modifying its behavior.
 
 * __Examples:__ The following code shows an example of this refactoring. Consider a function `foo/1` that uses `length/1` in a guard clause to check if a list is empty. This `length/1` call is inefficient and unnecessary for very large lists.
 
@@ -4138,11 +4138,11 @@ ___
   # After refactoring:
 
   defmodule Bar do
-    def foo(list) when list == [] do
+    def foo([]) do
       :empty_list
     end
 
-    def foo(list) when list != [] do
+    def foo([_|_]) do
       :non_empty_list
     end
   end
