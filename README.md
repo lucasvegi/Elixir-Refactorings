@@ -8,7 +8,7 @@
 * __[Introduction](#introduction)__
 * __[Elixir-Specific Refactorings](#elixir-specific-refactorings)__
   * [Alias expansion](#alias-expansion) [^**]
-  * [Default value for absent key in a Map](#default-value-for-absent-key-in-a-map) [^**]
+  * [Default value for an absent key in a Map](#default-value-for-an-absent-key-in-a-map) [^**]
   * [Defining a subset of a Map](#defining-a-subset-of-a-map) [^**]
   * [Modifying keys in a Map](#modifying-keys-in-a-map) [^**]
   * [Simplifying Ecto schema fields validation](#simplifying-ecto-schema-fields-validation) [^**]
@@ -32,18 +32,18 @@
   * [Folding against a function definition](#folding-against-a-function-definition)
   * [Extract constant](#extract-constant)
   * [Temporary variable elimination](#temporary-variable-elimination)
-  * [Merge expressions](#merge-expressions)
+  * [Extract expressions](#extract-expressions)
   * [Splitting a large module](#splitting-a-large-module)
-  * [Simplifying nested conditional statements](#simplifying-nested-conditional-statements)
+  * [Remove nested conditional statements in function calls](#remove-nested-conditional-statements-in-function-calls)
   * [Move file](#move-file)
   * [Remove dead code](#remove-dead-code)
-  * [Introduce or remove a duplicate definition](#introduce-or-remove-a-duplicate-definition)
+  * [Introduce a temporary duplicate definition](#introduce-a-temporary-duplicate-definition)
   * [Introduce overloading](#introduce-overloading)
   * [Remove import attributes](#remove-import-attributes)
   * [Introduce import](#introduce-import)
   * [Group Case Branches](#group-case-branches)
   * [Move expression out of case](#move-expression-out-of-case)
-  * [Simplifying test by truthness](#simplifying-test-by-truthness) [^**]
+  * [Simplifying checks by using truthness condition](#simplifying-checks-by-using-truthness-condition) [^**]
   * [Reducing a boolean equality expression](#reducing-a-boolean-equality-expression) [^**]
   * [Transform "unless" with negated conditions into "if"](#transform-unless-with-negated-conditions-into-if) [^**]
   * [Replace conditional with polymorphism via Protocols](#replace-conditional-with-polymorphism-via-protocols) [^**]
@@ -53,7 +53,7 @@
   * [Turning anonymous into local functions](#turning-anonymous-into-local-functions)
   * [Merging multiple definitions](#merging-multiple-definitions)
   * [Splitting a definition](#splitting-a-definition)
-  * [Inline macro substitution](#inline-macro-substitution)
+  * [Inline macro](#inline-macro)
   * [Transforming list appends and subtracts](#transforming-list-appends-and-subtracts)
   * [From tuple to struct](#from-tuple-to-struct)
   * [Struct guard to matching](#struct-guard-to-matching)
@@ -64,7 +64,7 @@
   * [Converts guards to conditionals](#converts-guards-to-conditionals)
   * [Widen or narrow definition scope](#widen-or-narrow-definition-scope)
   * [Introduce Enum.map/2](#introduce-enummap2)
-  * [Bindings to List](#bindings-to-list)
+  * [Merging match expressions into a list pattern](#merging-match-expressions-into-a-list-pattern)
   * [Function clauses to/from case clauses](#function-clauses-tofrom-case-clauses)
   * [Transform a body-recursive function to a tail-recursive](#transform-a-body-recursive-function-to-a-tail-recursive)
   * [Eliminate single branch](#eliminate-single-branch)
@@ -74,20 +74,20 @@
   * [Closure conversion](#closure-conversion) [^*]
   * [Replace pipeline with a function](#replace-pipeline-with-a-function) [^**]
   * [Remove single pipe](#remove-single-pipe) [^**]
-  * [Simplifying pattern matching in clauses](#simplifying-pattern-matching-in-clauses) [^**]
+  * [Simplifying pattern matching with nested structs](#simplifying-pattern-matching-with-nested-structs) [^**]
   * [Improving list appending performance](#improving-list-appending-performance) [^**]
   * [Convert nested conditionals to pipeline](#convert-nested-conditionals-to-pipeline) [^**]
   * [Replacing recursion with a higher-level construct](#replacing-recursion-with-a-higher-level-construct) [^**]
   * [Replace a nested conditional in a "case" statement with guards](#replace-a-nested-conditional-in-a-case-statement-with-guards) [^***]
   * [Replace function call with raw value in a pipeline start](#replace-function-call-with-raw-value-in-a-pipeline-start) [^***]
 * __[Erlang-Specific Refactorings](#erlang-specific-refactorings)__
-  * [Generate function specification](#generate-function-specification)
-  * [From defensive to non-defensive programming style](#from-defensive-to-non-defensive-programming-style)
+  * [Typing parameters and return values](#typing-parameters-and-return-values)
+  * [Moving error-handling mechanisms to supervision trees](#moving-error-handling-mechanisms-to-supervision-trees)
   * [From meta to normal function application](#from-meta-to-normal-function-application)
   * [Remove unnecessary calls to length/1](#remove-unnecessary-calls-to-length1)
   * [Add type declarations and contracts](#add-type-declarations-and-contracts)
-  * [Introduce concurrency](#introduce-concurrency)
-  * [Remove concurrency](#remove-concurrency)
+  * [Introduce processes](#introduce-processes)
+  * [Remove processes](#remove-processes)
   * [Add a tag to messages](#add-a-tag-to-messages)
   * [Register a process](#register-a-process)
   * [Behaviour extraction](#behaviour-extraction)
@@ -154,7 +154,7 @@ Elixir-specific refactorings are those that use programming features unique to t
 [▲ back to Index](#table-of-contents)
 ___
 
-### Default value for absent key in a Map
+### Default value for an absent key in a Map
 
 * __Category:__ Elixir-specific Refactorings.
 
@@ -1453,9 +1453,11 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Merge expressions
+### Extract expressions
 
 * __Category:__ Traditional Refactorings.
+
+* __Note:__ Formerly known as "Merge expressions".
 
 * __Motivation:__ This refactoring, in a way, behaves as the inverse of [Temporary variable elimination](#temporary-variable-elimination). When programming, we may sometimes come across unavoidably large and hard-to-understand expressions. With this refactoring, we can break down those expressions into smaller parts and assign them to local variables with meaningful names, thus facilitating the overall understanding of the code. In addition, this refactoring can help eliminate [Duplicated Code][Duplicated Code], as the variables extracted from the expressions can be reused in various parts of the codebase, avoiding the need for repetition of long expressions.
 
@@ -1521,7 +1523,7 @@ ___
   {:error, "No real roots"}
   ```
 
-  __Recalling previous refactorings:__ Although the refactored code shown above has made the code more readable, it still has opportunities for applying other refactorings previously documented in this catalog. Note that for the calculation of the roots, we have two lines of code that are practically identical. In addition, we have two temporary variables (``x1`` and ``x2``) that have only the purpose of storing results that will be returned by the function. If we take this refactored version of the code after applying [Merge expressions](#merge-expressions) and apply a composite refactoring with the sequence of [Extract function](#extract-function) -> [Generalise a function definition](#generalise-a-function-definition) -> [Fold against a function definition](#folding-against-a-function-definition) -> [Temporary variable elimination](#temporary-variable-elimination), we can arrive at the following version of the code:
+  __Recalling previous refactorings:__ Although the refactored code shown above has made the code more readable, it still has opportunities for applying other refactorings previously documented in this catalog. Note that for the calculation of the roots, we have two lines of code that are practically identical. In addition, we have two temporary variables (``x1`` and ``x2``) that have only the purpose of storing results that will be returned by the function. If we take this refactored version of the code after applying [Extract expressions](#extract-expressions) and apply a composite refactoring with the sequence of [Extract function](#extract-function) -> [Generalise a function definition](#generalise-a-function-definition) -> [Fold against a function definition](#folding-against-a-function-definition) -> [Temporary variable elimination](#temporary-variable-elimination), we can arrive at the following version of the code:
   
   ```elixir
   # After a composite refactoring:
@@ -1657,9 +1659,11 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Simplifying nested conditional statements
+### Remove nested conditional statements in function calls
 
 * __Category:__ Traditional Refactoring.
+
+* __Note:__ Formerly known as "Simplifying nested conditional statements".
 
 * __Motivation:__ Sometimes nested conditional statements can unnecessarily decrease the readability of the code. This refactoring aims to simplify the code by eliminating unnecessary nested conditional statements.
 
@@ -1781,9 +1785,11 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Introduce or remove a duplicate definition
+### Introduce a temporary duplicate definition
 
 * __Category:__ Traditional Refactoring.
+
+* __Note:__ Formerly known as "Introduce or remove a duplicate definition".
 
 * __Motivation:__ When we want to test a modification in a code without losing its original definition, we can temporarily duplicate it with a new identifier. Once this new version of the code is approved, it will replace the original version and the duplication will be removed.
 
@@ -2083,7 +2089,7 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Simplifying test by truthness
+### Simplifying checks by using truthness condition
 
 * __Category:__ Traditional Refactorings.
 
@@ -2588,9 +2594,11 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Inline macro substitution
+### Inline macro
 
 * __Category:__ Functional Refactorings.
+
+* __Note:__ Formerly known as "Inline macro substitution".
 
 * __Motivation:__ ``Macros`` are powerful meta-programming mechanisms that can be used in Elixir, as well as other functional languages like Erlang and Clojure, to extend the language. However, when a macro is implemented to solve problems that could be solved by functions or other pre-existing language structures, the code becomes unnecessarily more complex and less readable. Therefore, when identifying unnecessary macros that have been implemented, we can replace all instances of these macros with the code defined in their bodies. Some code compensations will be necessary to ensure that they continue to perform properly after refactoring. This refactoring is a specialization of the [Inline function](#inline-function) and can be used to remove the code smell [Unnecessary Macros][Unnecessary Macros].
 
@@ -3173,9 +3181,11 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Bindings to List
+### Merging match expressions into a list pattern
 
 * __Category:__ Functional Refactorings.
+
+* __Note:__ Formerly known as "Bindings to List".
 
 * __Motivation:__ The divide-and-conquer pattern refers to a computation in which a problem is recursively divided into independent subproblems, and then the subproblems' solutions are combined to obtain the solution of the original problem. Such a computation pattern can be easily parallelized because we can work on the subproblems independently and in parallel. This refactoring aims to restructure functions that utilize the divide-and-conquer pattern, making parallelization easier. More precisely, this refactoring merges a series of match expressions into a single match expression that employs a list pattern.
 
@@ -3653,7 +3663,7 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Simplifying pattern matching in clauses
+### Simplifying pattern matching with nested structs
 
 * __Category:__ Functional Refactorings.
 
@@ -3881,7 +3891,7 @@ ___
 
   defmodule File.Stream do
     def reduce(%{path: path, modes: modes}, acc, fun) do
-      strip_bom? = :strip_bom in modes  #<- "Merge Expression" refactoring!
+      strip_bom? = :strip_bom in modes  #<- "Extract Expressions" refactoring!
 
       start_fun =
         fn ->
@@ -3899,7 +3909,7 @@ ___
   end
   ```
 
-  Note that in this example, we performed a composite refactoring. In order to facilitate the replacement of the nested conditional command within the `case`, we also performed the [Merge expressions](#merge-expressions) refactoring to create the local variable `strip_bom?`.
+  Note that in this example, we performed a composite refactoring. In order to facilitate the replacement of the nested conditional command within the `case`, we also performed the [Extract expressions](#extract-expressions) refactoring to create the local variable `strip_bom?`.
 
   This example is based on an original code by Andrea Leopardi. Source: [link](https://github.com/elixir-lang/elixir/pull/5702)
 
@@ -3958,13 +3968,15 @@ ___
 
 Erlang-specific refactorings are those that use programming features unique to the Erlang ecosystem (e.g., OTP, typespecs, and behaviours). In this section, 11 different refactorings classified as Erlang-specific are explained and exemplified:
 
-### Generate function specification
+### Typing parameters and return values
 
 * __Category:__ Erlang-specific Refactorings.
 
+* __Note:__ Formerly known as "Generate function specification".
+
 * __Motivation:__ Despite being a dynamically-typed language, Elixir offers a feature to compensate for the lack of a static type system. By using ``Typespecs``, we can specify the types of each function parameter and of the return value. Utilizing this Elixir feature not only improves documentation, but also can enhance code readability and prepare it to be analyzed for tools like [Dialyzer][Dialyzer], enabling the detection of type inconsistencies, and potential bugs. The goal of this refactoring is simply to use ``Typespecs`` in a function to promote the aforementioned benefits of using this feature.
 
-* __Examples:__ The following code has already been presented in another context in the refactoring [Merge expressions](#merge-expressions). Prior to the refactoring, we have a module ``Bhaskara`` composed of the function ``solve/3``, responsible for finding the roots of a quadratic equation. Note that this function should receive three real numbers as parameters and return a tuple of two elements. The first element of this tuple is always an atom, while the second element may be a String (if there are no roots) or a tuple containing the two roots of the quadratic equation.
+* __Examples:__ The following code has already been presented in another context in the refactoring [Extract expressions](#extract-expressions). Prior to the refactoring, we have a module ``Bhaskara`` composed of the function ``solve/3``, responsible for finding the roots of a quadratic equation. Note that this function should receive three real numbers as parameters and return a tuple of two elements. The first element of this tuple is always an atom, while the second element may be a String (if there are no roots) or a tuple containing the two roots of the quadratic equation.
 
   ```elixir
   # Before refactoring:
@@ -4027,9 +4039,11 @@ Erlang-specific refactorings are those that use programming features unique to t
 [▲ back to Index](#table-of-contents)
 ___
 
-### From defensive to non-defensive programming style
+### Moving error-handling mechanisms to supervision trees
 
 * __Category:__ Erlang-specific Refactorings.
+
+* __Note:__ Formerly known as "From defensive to non-defensive programming style".
 
 * __Motivation:__ This refactoring helps to transform defensive-style error-handling code written in Elixir into supervised processes. This non-defensive style, also known as "Let it crash style", isolates error-handling code from business rule code in a system. When a process is supervised in a tree, it doesn't need to worry about error handling because if errors occur, its respective supervisor will monitor and restart it.
 
@@ -4218,7 +4232,7 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Introduce concurrency
+### Introduce processes
 
 * __Category:__ Erlang-Specific Refactorings.
 
@@ -4287,7 +4301,7 @@ ___
 [▲ back to Index](#table-of-contents)
 ___
 
-### Remove concurrency
+### Remove processes
 
 * __Category:__ Erlang-Specific Refactorings.
 
