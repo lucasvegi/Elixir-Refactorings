@@ -357,11 +357,11 @@ ___
   # Before refactoring:
 
   defp update_game_state(%{status: :started} = state, index, user_id) do
-    move = valid_move(state, index)
+    {move, _} = valid_move(state, index)
     if move == :ok do
       players_turn(state, user_id)
       |> case do
-        {:ok, marker} -> {:ok, play_turn(state, index, marker)}
+        {:ok, marker} -> play_turn(state, index, marker)
         other         -> other
       end
     else
@@ -376,9 +376,9 @@ ___
   # After refactoring:
 
   defp update_game_state(%{status: :started} = state, index, user_id) do
-    with :ok           <- valid_move(state, index),
-         {:ok, marker} <- players_turn(state, user_id),
-         new_state     =  play_turn(state, index, marker) do
+    with {:ok, _}         <- valid_move(state, index),
+         {:ok, marker}    <- players_turn(state, user_id),
+         {:ok, new_state} <- play_turn(state, index, marker) do
       {:ok, new_state}
     else
       (other -> other)
@@ -386,7 +386,7 @@ ___
   end  
   ```
 
-  As is characteristic of the `with` statement, the next function in this pipeline will only be called if the pattern of the previous call matches. Otherwise, the pipeline is terminated, returning the error that prevented it from proceeding to completion.
+  As is characteristic of the `with` statement, the next function in this pipeline will only be called if the pattern of the previous call matches. Otherwise, the pipeline is terminated, returning the error that prevented it from proceeding to completion. Note that this refactored version, although functioning correctly, also presents an opportunity to apply the refactoring [Remove redundant last clause in "with"](#remove-redundant-last-clause-in-with), since the last clause of the `with` statement is composed of a pattern identical to the predefined value to be returned by the `with` in case all checked patterns match.
 
   This example is based on an original code by Gary Rennie. Source: [link](https://www.youtube.com/watch?v=V21DAKtY31Q)
 
