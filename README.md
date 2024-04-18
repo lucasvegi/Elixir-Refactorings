@@ -3776,11 +3776,11 @@ ___
   # Before refactoring:
 
   defp update_game_state(%{status: :started} = state, index, user_id) do
-    move = valid_move(state, index)
+    {move, _} = valid_move(state, index)
     if move == :ok do
       players_turn(state, user_id)
       |> case do
-        {:ok, marker} -> {:ok, play_turn(state, index, marker)}
+        {:ok, marker} -> play_turn(state, index, marker)
         other         -> other
       end
     else
