@@ -114,6 +114,8 @@ Afterward, we scoured websites, blogs, forums, and videos (grey literature revie
 
 __Note:__ (*) not all refactorings have explicit definitions for these fields.
 
+__Tool support:__ [RefactorEx](https://github.com/gp-pereira/refactorex) is a VS Code extension inspired by this catalog that can semi-automatically apply some of the refactoring strategies defined here. Please take a look!
+
 This catalog of refactorings aims to improve the quality of code developed in Elixir, helping developers promote the redesign of their code, making it simpler to understand, modify, or even improving performance. These transformations must be performed without changing the original behavior, thus preserving the code's functionality. For this reason, we are interested in knowing Elixir's community opinion about these refactorings: *Do you agree that these refactorings can be useful? Have you seen any of them in production code? Do you have any suggestions about some Elixir-specific refactorings not cataloged by us?...*
 
 Please feel free to make pull requests and suggestions ([Issues][Issues] tab). We want to hear from you!
