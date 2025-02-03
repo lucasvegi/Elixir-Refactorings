@@ -1035,6 +1035,15 @@ ___
 
   All calls to ``ModuleA.foo/2`` should be updated to ``ModuleB.foo/2``. When there are no more calls to ``ModuleA.foo/2`` in the codebase, it should be deleted from ``ModuleA``. In addition, ``ModuleA`` will no longer need to import functions from ``ModuleB``, since this coupling has been undone.
 
+* __Side-conditions:__
+  * When the moved definition is a ``function`` or ``macro``, the name of this definition must not conflict with the name of any other definition of the same type already defined in the target module or imported by it;
+  
+  * When the moved definition is a ``function`` that originally calls other functions or macros, after the refactoring, this moved function must still refer to the same definitions of functions and macros originally called;
+
+  * When the moved definition is a ``struct``, it can only be moved to a target module that does not already define another ``struct``.
+
+  These side conditions are based on definitions written by László Lövei *et al.* in this paper: [[1]](https://doi.org/10.1145/1411273.1411285)
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -1044,7 +1053,7 @@ ___
 
 * __Motivation:__ This refactoring is used when it is necessary to request additional information from the callers of a function or the opposite situation, when some information passed by the callers is no longer necessary. The transformation promoted by this refactoring usually creates a new function with the same name as the original, but with a new parameter added or a parameter removed, and the body of the original function is replaced by a call to the new function, subsequently replacing the calls to the original function with calls to the new function. Thanks to the possibility of specifying default values for function parameters in Elixir, using the ``\\`` operator, we can simplify the mechanics of this refactoring, as shown in the following example.
 
-* __Examples:__ The following code has a ``foo/1`` function that always sum the constant +1 to the value passed as a parameter.
+* __Examples:__ The following code has a ``foo/1`` function that always sum the constant +1 to the ``value`` passed as a parameter.
 
   ```elixir
   # Before refactoring:
@@ -1065,6 +1074,17 @@ ___
   ```
 
   Note that although we have now only explicitly implemented the ``foo/2`` function, in Elixir this definition generates two functions with the same name, but with different arities: ``foo/1`` and ``foo/2``. This will allow the callers of the original function to continue functioning without any changes. Although the example has only emphasized the addition of new parameters using default values, this feature can also be useful when we want to remove a parameter from a function, decreasing its arity. We can define a default value for the parameter to be removed when it is no longer used in the body of the function. This will keep the higher arity function callers working, even if providing an unused additional value. Additionally, new callers of the lower arity function can coexist in the codebase. When all old callers of the higher arity function are replaced by calls to the lower arity function, the parameter with the default value can finally be removed from the function without compromising any caller.
+
+* __Side-conditions:__
+  * When adding a new parameter, its name (*e.g.*, `new_arg`) must not conflict with the name of any other parameter or local variable in the refactored function;
+
+  * When adding a new parameter to a function and thus increasing its arity, this operation must not conflict with functions of the same name and arity that are already defined or imported into the refactored module;
+
+  * When removing a parameter, it should not be used in the definition of the function that is being refactored;
+
+  * When removing a parameter from a function and thus reducing its arity, this operation must not conflict with functions of the same name and arity that are already defined or imported into the refactored module.
+
+  These side conditions are based on definitions provided by members of the HaRe project (Haskell Refactorer tool), as described in the following link: [[1]](https://www.cs.kent.ac.uk/projects/refactor-fp/catalogue/)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -1122,6 +1142,15 @@ ___
   
   __Important:__ Although this refactoring has grouped parameters using ``tuples``, we can find in different functions identical groups of parameters that could be grouped (i.e., Data Clumps). In that case, is better to create a ``struct`` to group these parameters and reuse this ``struct`` to refactor all functions where this group of parameters occurs.
 
+* __Side-conditions:__
+  * The grouped parameters must be sequential in the original parameter list of the modified function;
+  
+  * The function created by this refactoring, with reduced arity, must not conflict with any existing functions defined in the same module or imported by it;
+
+  * The refactored function must not be an OTP callback function (*e.g.*, ``GenServer.handle_call/3``).
+
+  These side conditions are based on definitions written by Huiqing Li *et al.* in this paper: [[1]](https://doi.org/10.1145/1411273.1411283)
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -1169,7 +1198,12 @@ ___
   247.5
   ```
 
-  The ``area/3`` acts as a wrapper that calls ``new_area/3`` and should be kept in the code temporarily, only while the calls to it throughout the codebase are gradually replaced by calls to ``new_area/3``. This mitigates the risk of this refactoring generating breaking changes. When there are no more calls to the ``area/3``, it should be deleted from its module and ``new_area/3`` can be renamed to ``area/3`` using [Rename an identifier](#rename-an-identifier).
+* __Side-conditions:__
+  * The new function created by this refactoring must have the same arity as the original function and have a name different from all others defined or imported by the refactored module, avoiding conflicts;
+  
+  * The ``area/3`` acts as a wrapper that calls ``new_area/3`` and should be kept in the code temporarily, only while the calls to it throughout the codebase are gradually replaced by calls to ``new_area/3``. This mitigates the risk of this refactoring generating breaking changes;
+
+  * When there are no more calls to the ``area/3``, it should be deleted from its module and ``new_area/3`` can be renamed to ``area/3`` using [Rename an identifier](#rename-an-identifier).
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -1219,6 +1253,19 @@ ___
 
   This refactoring not only improves the readability of ``ticket_booking/5``, but also enables more code reuse, since ``report/1`` may eventually be called by other functions in the codebase.
 
+* __Side-conditions:__
+  * The name and arity of extracted function created in this refactoring (*e.g.*, `report/1`) must not conflict with the name of any other function already defined or imported by the refactored module;
+
+  * The extracted sequence of expressions must not make recursive calls to the original function;
+
+  * The extracted sequence of expressions must not be originally included in a ``guard`` sequence;
+
+  * The extracted sequence of expressions must not be originally part of a pattern;
+
+  * The extracted sequence of expressions must not be originally within a ``macro`` definition.
+
+  These side conditions are based on definitions provided by members of the RefactorErl project, as described in the following link: [[1]](http://pnyf.inf.elte.hu/trac/refactorerl/wiki/RefactoringSteps)
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -1257,6 +1304,13 @@ ___
   ```
 
   This refactoring preserves the behavior of the function and will make it easier for the programmer to debug the code.
+
+* __Side-conditions:__
+  * The body of the original function, which is used to replace its calls, must not contain variables that conflict with the names of other variables already existing in the scope where the function calls occurred;
+
+  * If the calls replaced by the body of a function refer to a function defined in a different module, the body of that function must not contain calls to functions that are not imported in the scope where the replaced calls occurred.
+
+  These side conditions are based on definitions provided by members of the RefactorErl project, as described in the following link: [[1]](http://pnyf.inf.elte.hu/trac/refactorerl/wiki/RefactoringSteps)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -1341,6 +1395,13 @@ ___
   ```
 
   Also note that in this example, after the refactoring is done, the third parameter of the ``improve_grades/3`` function is no longer used in the function body. This is an opportunity to apply the [Add or remove parameter](#add-or-remove-a-parameter) refactoring.
+
+* __Side-conditions:__
+  * The duplicated code to be replaced and the function to be called to perform this refactoring must be defined in the same module;
+
+  * After replacing the duplicated code with a function call, compensations (*e.g.*, pattern matching to extract values returned by the function) may be necessary to maintain the code's original behavior.
+
+  These side conditions are based on definitions provided by members of the HaRe project (Haskell Refactorer tool), as described in the following link: [[1]](https://www.cs.kent.ac.uk/projects/refactor-fp/catalogue/)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -1452,6 +1513,13 @@ ___
 
   This refactoring can promote a significant simplification of some code, as well as avoid redundant computations that can harm performance.
 
+* __Side-conditions:__
+  * The variable has only one binding occurrence on the left-hand side of a pattern matching expression and is not part of a compound pattern;
+
+  * The expression bound to the variable is pure, meaning it has no side effects.
+
+  These side conditions are based on definitions provided by members of the RefactorErl project, as described in the following link: [[1]](http://pnyf.inf.elte.hu/trac/refactorerl/wiki/RefactoringSteps)
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -1524,6 +1592,15 @@ ___
   iex(3)> Bhaskara.solve(1, 2, 3)
   {:error, "No real roots"}
   ```
+
+* __Side-conditions:__
+  * The name of the new variable created in this refactoring (*e.g.*, `delta`) must not conflict with the name of any other variable already defined in the same scope;
+
+  * The expression to be extracted into a variable must originally be contained within the body of a function and not be part of a guard expression;
+
+  * The expression cannot be replaced by a variable if any of its sub-expressions are not pure, meaning they have side effects.
+
+  These side conditions are based on definitions provided by members of the RefactorErl project, as described in the following link: [[1]](http://pnyf.inf.elte.hu/trac/refactorerl/wiki/RefactoringSteps)
 
   __Recalling previous refactorings:__ Although the refactored code shown above has made the code more readable, it still has opportunities for applying other refactorings previously documented in this catalog. Note that for the calculation of the roots, we have two lines of code that are practically identical. In addition, we have two temporary variables (``x1`` and ``x2``) that have only the purpose of storing results that will be returned by the function. If we take this refactored version of the code after applying [Extract expressions](#extract-expressions) and apply a composite refactoring with the sequence of [Extract function](#extract-function) -> [Generalise a function definition](#generalise-a-function-definition) -> [Fold against a function definition](#folding-against-a-function-definition) -> [Temporary variable elimination](#temporary-variable-elimination), we can arrive at the following version of the code:
   
@@ -1742,7 +1819,7 @@ ___
 
 * __Category:__ Traditional Refactoring.
 
-* __Motivation:__ Dead code (i.e., unused code) can pollute a codebase making it longer and harder to maintain. This refactoring aims to clean the codebase by eliminating code definitions that are not being used.
+* __Motivation:__ Dead code (*i.e.*, unused code) can pollute a codebase making it longer and harder to maintain. This refactoring aims to clean the codebase by eliminating code definitions that are not being used.
 
 * __Examples:__ The following code shows an example of this refactoring. Before the refactoring, we have a function ``bar/2`` that modifies the two values received as parameters and then returns the power of both.
 
@@ -1783,6 +1860,9 @@ ___
   iex(1)> Foo.bar(2, 1) 
   {:ok, 4096}                
   ```
+
+* __Side-conditions:__
+  * Considering that the code removed by this refactoring must be either commented out or not referenced by any other part of the codebase, this refactoring can be performed without the need to meet any additional specific conditions.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -1830,7 +1910,12 @@ ___
   {:ok, 25}               
   ```
 
-  Note that the identifier of the introduced duplicated code (``v3_duplication``) should not conflict with any other existing identifier in the code. Once the new version of the code has been implemented and approved, the duplication can be removed from the codebase by this refactoring. If the new version is disapproved, we can return to the original version by applying [Rename an identifier](#rename-an-identifier) to it.
+* __Side-conditions:__
+  * Note that the identifier of the introduced duplicated code (``v3_duplication``) should not conflict with any other existing identifier in the code;
+
+  * Once the new version of the code has been implemented and approved, the duplication can be removed from the codebase by this refactoring. If the new version is disapproved, we can return to the original version by applying [Rename an identifier](#rename-an-identifier) to it.
+
+  These side conditions are based on definitions provided by members of the HaRe project (Haskell Refactorer tool), as described in the following link: [[1]](https://www.cs.kent.ac.uk/projects/refactor-fp/catalogue/)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -1952,6 +2037,9 @@ ___
   3
   ```
 
+* __Side-conditions:__
+  * This refactoring is free from any preconditions or postconditions. Considering that after this refactoring, the functions that were originally imported will be called with a fully-qualified name, even if the module that acted as the importer defines a function with the same name/arity as a function that was imported before the refactoring, no conflict will occur.
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -1962,6 +2050,13 @@ ___
 * __Motivation:__ This refactoring is the inverse of [Remove import attributes](#remove-import-attributes). Recall that Remove import attributes allows you to remove `import` directives from a module, replacing all calls to imported functions with fully-qualified name calls (`Module.function(args)`). In contrast, Introduce import focuses on replacing fully-qualified name calls of functions from other modules with calls that use only the name of the imported functions.
 
 * __Examples:__ To better understand, take a look at the example in [Remove import attributes](#remove-import-attributes) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
+
+* __Side-conditions:__
+  * When a module `Foo` is importing functions from a module `Bar`, the module `Foo` must not have any previously defined functions with the same names/arity as the functions imported from `Bar`, thus avoiding conflicts;
+  
+  * Additionally, the module `Foo` must not have previously imported functions defined in other modules that have the same name/arity as the functions imported from `Bar`.
+
+  This side condition is based on definitions provided by members of the RefactorErl project, as described in the following link: [[1]](http://pnyf.inf.elte.hu/trac/refactorerl/wiki/RefactoringSteps)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -1997,9 +2092,9 @@ ___
 
   After refactoring, this ``case`` statement is replaced by four separate ``case`` statements, each with its respective role:
 
-  - *(1 and 2)* Determine whether the instance is a base case (``true``) or a recursive case (``false``);
+  * *(1 and 2)* Determine whether the instance is a base case (``true``) or a recursive case (``false``);
 
-  - *(3 and 4)* Define which specific base case or recursive case we are dealing with, respectively.
+  * *(3 and 4)* Define which specific base case or recursive case we are dealing with, respectively.
   
   ```elixir
   # After refactoring:
@@ -2031,6 +2126,11 @@ ___
   iex(1)> Foo.merge_sort([3, 20, 9, 2, 7, 99, 80, 30])
   [2, 3, 7, 9, 20, 30, 80, 99]
   ```
+
+* __Side-conditions:__
+  * The head expression of the original `case` statement (*e.g.*, `case list do`) must be pure before refactoring. In other words, this expression should not contain side effects, such as I/O operations, persist data in database, update GUI state, sending/receiving messages, etc.
+
+  This side condition is based on definitions written by Tamás Kozsik *et al.* in this paper: [[1]](https://doi.org/10.1016/j.future.2017.05.011)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -2087,6 +2187,11 @@ ___
   iex(2)> Foo.bar(false, [6, 5, 4, 3, 2, 1])
   true
   ```
+
+* __Side-conditions:__
+  * The expressions at the end of the original `case` branches should be lexically identical.
+
+  This side condition is based on definitions written by Tamás Kozsik *et al.* in this paper: [[1]](https://doi.org/10.1016/j.future.2017.05.011)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -2381,6 +2486,19 @@ Functional refactorings are those that use programming features characteristic o
 
   This refactoring preserved the behaviors of ``foo/1`` and ``bar/1``, without the need to modify their calls. In addition, we eliminated the duplicated code, allowing the developer to focus solely on maintaining the generic function in the ``Gen`` module. Finally, if there is a need to create a new function for transforming lists in two steps, we can possibly reuse the code from ``generic/4`` without creating new duplications.
 
+* __Side-conditions:__
+  * The name and arity of the higher-order function created in this refactoring (*e.g.*, `generic/4`) must not conflict with the name of any other function already defined or imported by the refactored module;
+
+  * The functions that have equivalent expressions and are thus generalized by this refactoring must originally be defined in the same module;
+
+  * The arity of the generic function created by this refactoring must be identical to the number of groups of generalizable code elements in the refactored equivalent expressions;
+
+  * The equivalent expressions to be generalized are not patterns and do not invoke the function in which they are defined (*i.e.*, recursive calls);
+
+  * The extracted sequence of equivalent expressions to be generalized must not be part of a ``macro`` definition.
+
+  These side conditions are based on definitions provided by members of the RefactorErl project, as described in the following link: [[1]](http://pnyf.inf.elte.hu/trac/refactorerl/wiki/RefactoringSteps)
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -2425,6 +2543,13 @@ ___
   ```
 
   __Important:__ Although ``fibonacci/1`` is not a [Long Functions][Long Function] and originally has simple expressions in each of its branches, it serves to illustrate the purpose of this refactoring. Try to imagine a scenario where a function has many different branches, each of which is made up of several lines of code. This would indeed be an ideal scenario to apply the proposed refactoring.
+
+* __Side-conditions:__
+  * The function to be refactored must have parameters that receive values defining which internal branch will run. Thus, after the refactoring, we will have different clauses of the refactored function performing pattern matching on these parameters;
+
+  * The number of clauses in the multi-clause function generated by this refactoring must be identical to the number of branches in the original function;
+
+  * The expressions used in the pattern matches should be the same as those originally evaluated by the classical conditional structures.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -2486,6 +2611,13 @@ ___
   ```
 
   Note that although in this example the new local function ``double/1``, defined to replace the duplicated anonymous functions, was only used in the ``Lambda`` module, nothing prevents it from being reused in other parts of the codebase, as ``double/1`` can be imported by any other module.
+
+* __Side-conditions:__
+  * The originally duplicated anonymous functions must have been defined within the same module (*e.g.*, `Lambda`).
+
+  * The originally duplicated anonymous functions may have been defined using the `fn` and `end` syntax (*e.g.*, `fn x -> x * 2 end`), or the more compact equivalent syntax using the `&` operator (*e.g.*, `&(&1 * 2)`).
+  
+  * The name and arity of new local function created in this refactoring (*e.g.*, `double/1`) must not conflict with the name of any other function already defined or imported by the refactored module.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -2582,6 +2714,13 @@ ___
 
   These examples are based on Haskell code written in two papers. Source: [[1]](https://dl.acm.org/doi/10.1145/1706356.1706378), [[2]](https://www.cs.kent.ac.uk/pubs/2010/3009/index.html).
 
+* __Side-conditions:__
+  * The functions to be merged in this refactoring should preferably be originally defined in the same module. This way, in addition to ensuring that the transformed code maintains the same behavior, the cohesion of the codebase will also be preserved;
+
+  * After this refactoring, if the calls to the original functions are replaced with a call to the newly created function, pattern matching is required to extract the desired values from the returned ``tuple``, ensuring that the original behavior of the code is preserved.
+
+  These side conditions are based on definitions written by Tamás Kozsik *et al.* in this paper: [[1]](https://doi.org/10.1016/j.future.2017.05.011)
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -2592,6 +2731,13 @@ ___
 * __Motivation:__ This refactoring is the inverse of [Merging multiple definitions](#merging-multiple-definitions). While merge multiple definitions aims to group recursive functions into a single recursive function that returns a tuple, splitting a definition aims to separate a recursive function by creating new recursive functions, each of them responsible for individually generating a respective element originally contained in a tuple.
 
 * __Examples:__ Take a look at the example in [Merging multiple definitions](#merging-multiple-definitions) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
+
+* __Side-conditions:__
+  * The function selected for refactoring must originally return a ``tuple`` containing a number of elements identical to the number of new functions to be created by this refactoring;
+
+  * The new recursive functions created by this refactoring must not conflict with functions of the same name and arity that are already defined or imported into the refactored module.
+
+  These side conditions are based on definitions provided by members of the HaRe project (Haskell Refactorer tool), as described in the following link: [[1]](https://www.cs.kent.ac.uk/projects/refactor-fp/catalogue/)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -2649,6 +2795,15 @@ ___
   5
   ```
 
+* __Side-conditions:__
+  * The body of the ``macro``, which is used to replace its calls, must not contain variables that conflict with the names of other variables already existing in the scope where the ``macro`` calls occurred;
+
+  * The selected ``macro`` to have its calls replaced by its body must not contain another ``macro`` call in its definition;
+
+  * During the replacement of ``macro`` calls with its body, we must clean up the code by removing constructs such as `quote/2` and `unquote/1`, as they are unnecessary within the scope of a conventional function.
+
+  These side conditions are based on definitions provided by members of the RefactorErl project, as described in the following link: [[1]](http://pnyf.inf.elte.hu/trac/refactorerl/wiki/RefactoringSteps)
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -2681,6 +2836,11 @@ ___
   iex(2)> [1, 2, 3, 4, 5] -- [1, 3]
   [2, 4, 5]                           
   ```
+
+* __Side-conditions:__
+  * To maintain the same behavior of the code, the list on the left side of the `Kernel.++/2` operator after the refactoring must be identical to the list that was originally passed as the first parameter of the `Enum.concat/2` function. Additionally, the list on the right side of `Kernel.++/2` must have originally been the second parameter provided in the call to `Enum.concat/2`;
+
+  * When performing list subtraction, to maintain the same behavior, the list on the left side of the `Kernel.--/2` operator must have originally been the first parameter of the `Enum.reject/2` call. On the other hand, the list on the right side of `Kernel.--/2` must have originally been the one contained within the anonymous function passed as the second parameter of the `Enum.reject/2` call.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -2724,6 +2884,13 @@ ___
   iex(1)> Order.discount(%Order{id: :s1, customer: "Jose", total: 150.0}, 0.5)
   %Order{id: :s1, customer: "Jose", total: 75.0}                     
   ```
+
+* __Side-conditions:__
+  * The module containing the ``tuple`` chosen for refactoring must not define a ``struct`` prior to the refactoring, to avoid conflicts;  
+  
+  * The names of the ``struct`` fields created during the refactoring must be ``atoms``, and therefore must all be unique.
+
+  These side conditions are based on definitions written by Huiqing Li *et al.* in this paper: [[1]](https://doi.org/10.1145/1411273.1411283)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -2772,6 +2939,9 @@ ___
   ** (FunctionClauseError) no function clause matching in Order.discount/2                     
   ```
 
+* __Side-conditions:__
+  * To maintain the same behavior of the code, in the refactored version, an instance of the struct that was originally checked by the `is_struct` function (*e.g.*, `%Order{}`) must be placed on the left side of the match operator in the pattern matching performed on the parameter that originally only received a value validated by the guard (*i.e.*, ``struct``).
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -2816,6 +2986,9 @@ ___
   Note that the more direct accesses to a field of a struct exist before refactoring, the more benefits this refactoring will bring in reducing the size of the code.
   
   When struct fields are accessed exclusively in the function signature or its body, we must be careful not to introduce the code smell [Complex extractions in clauses][Complex extractions in clauses] with this refactoring.
+
+* __Side-conditions:__
+  * The variable created to replace the direct access to struct fields must have a name that does not conflict with the names of parameters or local variables defined in the function before the refactoring.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -3137,6 +3310,11 @@ ___
 
   Considering this example, to narrow the scope of `my_div/2`, we can perform the reverse refactoring, that is, `# After refactoring:` -> `# Before refactoring:`.
 
+* __Side-conditions:__
+  * When widening the scope of an anonymous function, the name and arity of the newly named function created in this refactoring (*e.g.*, `my_div/2`) must not conflict with the name of any other function already defined or imported by the refactored module.
+
+  * When widening the scope of an anonymous function, the anonymous function must not be a closure (*i.e.*, it must not access variables outside its scope).
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -3180,6 +3358,11 @@ ___
 
   Note that this refactoring produces code that enables the application of [Transform to list comprehension](#transform-to-list-comprehension).
 
+* __Side-conditions:__
+  * For this refactoring to be performed without causing changes in the code's behavior, the function that originally generates each element of the list expression (*e.g.*, `merge_sort/1`) must be pure, meaning it should not produce side effects.
+
+  This side condition is based on definitions written by Tamás Kozsik *et al.* in this paper: [[1]](https://doi.org/10.1016/j.future.2017.05.011)
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -3221,6 +3404,11 @@ ___
   ```
 
   Note that this refactoring produces code that enables the application of [Introduce Enum.map/2](#introduce-enummap2).
+
+* __Side-conditions:__
+  * For this refactoring to be performed without causing changes in the code's behavior, the functions that originally compose the series of match expressions must be pure, meaning they should not produce side effects. In the example above, we have only `merge_sort/1`, but this sequence of match expressions could also involve multiple different functions.
+
+  This side condition is based on definitions written by Tamás Kozsik *et al.* in this paper: [[1]](https://doi.org/10.1016/j.future.2017.05.011)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -3277,6 +3465,11 @@ ___
   ```
 
   Note that this refactoring example could also be done in reverse order, that is, `# After refactoring:` -> `# Before refactoring:`.
+
+* __Side-conditions:__
+  * Once all clauses of a multi-clause function are unified into a single function that uses a `case` statement, for this refactoring to be performed properly, it is ideal that there are no identically named variables originally defined in the multiple clauses of the function. This prevents conflicts after unification.
+
+  This side condition is based on definitions written by Tamás Kozsik *et al.* in this paper: [[1]](https://doi.org/10.1016/j.future.2017.05.011)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -3386,8 +3579,7 @@ ___
   defmodule Foo do
     def qux(value) do
       case value do
-        {:ok, v1, v2} ->
-          (v1 + v1) * v2
+        {:ok, v1, v2} -> (v1 + v1) * v2
       end
     end
   end
@@ -3420,7 +3612,14 @@ ___
   ** (MatchError) no match of right hand side value: {:error, 2, 4}                   
   ```
 
-  Note that the only behavioral difference between the original and refactored code is that a different error is raised when the pattern matching does not occur (i.e., ``MatchError``). This could be compensated for by using the error-handling mechanism of Elixir, as shown in [Converts guards to conditionals](#converts-guards-to-conditionals).
+  Note that the only behavioral difference between the original and refactored code is that a different error is raised when the pattern matching does not occur (*i.e.*, ``MatchError``). This could be compensated for by using the error-handling mechanism of Elixir, as shown in [Converts guards to conditionals](#converts-guards-to-conditionals).
+
+* __Side-conditions:__
+  * There are no preconditions for this refactoring;  
+
+  * Since different types of errors are raised between the two versions of the code (*i.e.*, `CaseClauseError` and `MatchError`), fully preserving the original behavior—including this aspect—may require compensation through error handlers (*e.g.*, ``try..rescue``).
+
+  These side conditions are based on definitions written by Tamás Kozsik *et al.* in this paper: [[1]](https://doi.org/10.1016/j.future.2017.05.011)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -3455,6 +3654,11 @@ ___
   [2, 4]                       
   ```
 
+* __Side-conditions:__
+  * The only precondition for performing this refactoring is that calls to the functions `Enum.map/2` or `Enum.filter/2` are selected to be converted into equivalent list comprehensions.
+
+  This side condition is based on definitions provided by members of the RefactorErl project, as described in the following link: [[1]](http://pnyf.inf.elte.hu/trac/refactorerl/wiki/RefactoringSteps)
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -3482,6 +3686,9 @@ ___
   [4, 16]                       
   ```
 
+* __Side-conditions:__
+  * The only precondition for performing this refactoring is that nested calls to the functions `Enum.map/2` or `Enum.filter/2` are selected to be converted into equivalent list comprehensions. However, it is not recommended to select too many levels of nesting for the conversion (e.g., more than three nested calls), as the list comprehension version may become even less readable than the original code.
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -3492,6 +3699,11 @@ ___
 * __Motivation:__ This refactoring is the inverse of [Transform to list comprehension](#transform-to-list-comprehension) and [Nested list functions to comprehension](#nested-list-functions-to-comprehension). We can apply this refactoring to existing list comprehensions in the Elixir codebase, transforming them into semantically equivalent calls to the functions ``Enum.map/2`` or ``Enum.filter/2``.
 
 * __Examples:__ Take a look at the examples in [Transform to list comprehension](#transform-to-list-comprehension) and [Nested list functions to comprehension](#nested-list-functions-to-comprehension) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
+
+* __Side-conditions:__
+  * The list comprehension to be transformed can have only one generator. This precondition exists because transforming more complex list comprehensions, *i.e.*, with two or more generators, although possible, would likely complicate the understanding of the code, making it not worth doing.
+
+  This side condition is based on definitions provided by members of the RefactorErl project, as described in the following link: [[1]](http://pnyf.inf.elte.hu/trac/refactorerl/wiki/RefactoringSteps)
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -3618,14 +3830,14 @@ ___
 
   This same type of refactoring can be applied to the following pipelines:
 
-  - ``Enum.into/3`` is better than ``Enum.map/2 |> Enum.into/2``
-  - ``Enum.map_join/3`` is better than ``Enum.map/2 |> Enum.join/2``
-  - ``DateTime.utc_now/1`` is better than ``DateTime.utc_now/0 |> DateTime.truncate/1``
-  - ``NaiveDateTime.utc_now/1`` is better than ``NaiveDateTime.utc_now/0 |> NaiveDateTime.truncate/1``
-  - One ``Enum.map/2`` is better than ``Enum.map/2 |> Enum.map/2``
-  - One ``Enum.filter/2`` is better than ``Enum.filter/2 |> Enum.filter/2``
-  - One ``Enum.reject/2`` is better than ``Enum.reject/2 |> Enum.reject/2``
-  - One ``Enum.filter/2`` is better than ``Enum.filter/2 |> Enum.reject/2``
+  * ``Enum.into/3`` is better than ``Enum.map/2 |> Enum.into/2``
+  * ``Enum.map_join/3`` is better than ``Enum.map/2 |> Enum.join/2``
+  * ``DateTime.utc_now/1`` is better than ``DateTime.utc_now/0 |> DateTime.truncate/1``
+  * ``NaiveDateTime.utc_now/1`` is better than ``NaiveDateTime.utc_now/0 |> NaiveDateTime.truncate/1``
+  * One ``Enum.map/2`` is better than ``Enum.map/2 |> Enum.map/2``
+  * One ``Enum.filter/2`` is better than ``Enum.filter/2 |> Enum.filter/2``
+  * One ``Enum.reject/2`` is better than ``Enum.reject/2 |> Enum.reject/2``
+  * One ``Enum.filter/2`` is better than ``Enum.filter/2 |> Enum.reject/2``
 
   These examples are based on code written in Credo's official documentation. Source: [link](https://hexdocs.pm/credo/Credo.Check.Refactor.FilterCount.html)
 
@@ -4038,6 +4250,9 @@ Erlang-specific refactorings are those that use programming features unique to t
 
   Note that with the use of ``@spec``, we can easily check the function specification using Elixir's helper.
 
+* __Side-conditions:__
+  * This refactoring is free from any preconditions or postconditions, and can therefore always be used to improve the specification of any named function.
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -4230,6 +4445,11 @@ ___
   ```
 
   Note that with the use of ``@type``, we can easily check the type specification using Elixir's helper.
+
+* __Side-conditions:__
+  * The name of the type created by this refactoring (*e.g.*, `color()`) must be unique. In other words, it must be different from all predefined basic types in Elixir (*e.g.*, `integer()`, `float()`, `atom()`, etc.), as well as from all custom data types defined in the refactored module or any other module in the codebase, including those from imported external libraries.
+
+  * Although type names and function names do not technically conflict, having a type with the same name as a function defined in the module can cause confusion for code readers. Therefore, it is a good practice to ensure that type names are unique, even in relation to function names. For this reason, this is also a side condition of this refactoring.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -4471,6 +4691,15 @@ ___
   iex(3)> Sender.send_msg(:receiver, "Hello World!")
   Message: Hello World!
   ```
+
+* __Side-conditions:__
+  * The process name specified by the user must be an ``atom`` and not already assigned as a process name within the program in question;
+  
+  * The chosen process for registration must not have been previously registered;
+
+  * The process to be registered must not have multiple instances coexisting simultaneously.
+
+  These side conditions are based on definitions written by Huiqing Li *et al.* in this paper: [[1]](https://doi.org/10.1145/1411273.1411283)
 
 [▲ back to Index](#table-of-contents)
 ___
