@@ -3037,6 +3037,13 @@ ___
   ** (FunctionClauseError) no function clause matching in Order.discount/2                   
   ```
 
+* __Side-conditions:__
+  * The temporary variable replaced by a pattern matching occurrence must have been originally created via extraction from a composite data type (*e.g.*, `list`, `tuple`, `Map`, or `Struct`) performed in a function clause;
+
+  * Before the refactoring, this temporary variable must be exclusively used in an equality comparison performed in a guard clause;
+
+  * After the refactoring, the location where the temporary variable was originally extracted must have its creation replaced by the value that was originally compared to it in the guard clause before the refactoring.
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -3091,6 +3098,11 @@ ___
   iex(2)> Order.check({false, [:car, :house, :boat]})
   {false, [:car, :house, :boat]}                   
   ```
+
+* __Side-conditions:__
+  * The variables created to promote the reuse of static structures must have names that do not conflict with the names of pre-existing variables;
+
+  * The static structures that are replaced by variables must be originally lexically identical.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -3158,6 +3170,14 @@ ___
   iex(4)> Foo.bar({1,2,3,4})  #<= tuple!
   ** (FunctionClauseError) no function clause matching in Foo.bar/1                   
   ```
+
+* __Side-conditions:__
+  * The expressions to be simplified by this refactoring must originally be defined in guards, whether they are for checks in `case` statements or in function clauses;
+
+  * The expressions to be refactored, in order to be considered redundant, must alternatively:
+    * check the type of a simple value (*e.g.*, `integer`, `float`, or `atom`) and additionally perform an **equality** comparison of this value with a constant;
+
+    * check the type of a composite value (*e.g.*, `list`, `tuple`, `bitstring`, or `Map`) and also perform a comparison of this value with a constant in such a way that the type is inherently verified as well. For example, the functions `byte_size/1`, `tuple_size/1`, and `map_size/1`, in addition to returning the sizes of composite values, also intrinsically verify if they are of the types `bitstring`, `tuple`, or `Map`, respectively.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -3235,6 +3255,11 @@ ___
   In Elixir, when an error is raised from inside the guard, it won’t be propagated, and the guard expression will just return false. An example of this occurs when a call to ``Kernel.length/1`` in a guard receives a parameter that is not a ``list``. Instead of propagating an ``ArgumentError``, the corresponding clause just won’t match. However, when the same proposition is used outside of a guard (in a conditional), an ``ArgumentError`` will be propagated.
   
   To keep the refactored code with the same behavior as the original, raising only a ``FunctionClauseError`` when the conditional has no branch equivalent to the desired clause, it was necessary to use the error-handling mechanism of Elixir. Note that the use of this error-handling mechanism, combined with the fact of merging multiple clauses into one, may turn this refactored code into a [Long Function][Long Function].
+
+* __Side-conditions:__
+  * The guards to be transformed into clauses of a `cond` statement should originally be used to differentiate clauses of a multi-clause function;
+
+  * After the refactoring, it may be necessary to use error-handling mechanisms to maintain the same original behavior of the code. As explained earlier, errors that were not propagated in the guards may now be propagated outside of them.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -3562,6 +3587,11 @@ ___
   body_recursive         46.39 - 3.89x slower +16.01 ms
   ```
 
+* __Side-conditions:__
+  * The new function created to support the transformation of the body-recursive function into a tail-recursive one (*e.g.*, `do_sum_list_elements/2`) must have a name that is different from all other functions already pre-existing or imported by the module to be refactored;
+
+  * To be eligible for refactoring, a body-recursive function must not rely on post-recursive processing. In other words, it should be possible to transform this function solely with logical restructuring, without requiring design changes (*e.g.*, types or the number of parameters).
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -3762,6 +3792,9 @@ ___
 
   Note that this refactored code still presents opportunities to apply of other refactoring strategies. Since the parameter of `generate_sum/1` is no longer needed as it is always ignored within the function, we can apply [Add or remove a parameter](#add-or-remove-a-parameter) to `generate_sum/1`, transforming it into `generate_sum/0`. Additionally, we can use [Rename an identifier](#rename-an-identifier) to update the name of the variable `add_8`, responsible for binding the anonymous function returned by the higher-order function. As both values summed by the anonymous function are now defined at the time of its call, the name `add_8` no longer makes sense.
 
+* __Side-conditions:__
+  * The new parameter added to the anonymous function must have the same name as the variable that was previously coming from outside the scope of the anonymous function (*e.g.*, `x`). This will ensure that, in addition to the anonymous function no longer being a closure, the added parameter will not conflict with any other pre-existing parameter or local variable within the anonymous function.
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -3841,6 +3874,11 @@ ___
 
   These examples are based on code written in Credo's official documentation. Source: [link](https://hexdocs.pm/credo/Credo.Check.Refactor.FilterCount.html)
 
+* __Side-conditions:__
+  * The pipeline to be replaced must originally consist of chained calls to Elixir's built-in functions;
+  
+  * For a pipeline (or part of it) to be replaced by a single function call, there must be built-in Elixir functions that offer behavior equivalent to the set of calls originally chained in the pipeline. Examples of compatible substitutions for Elixir version 1.17.2 are provided above in the documentation of this refactoring. This compatibility may change as the language evolves.
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -3874,6 +3912,9 @@ ___
 
   These examples are based on code written in Recode's official documentation. Source: [link](https://hexdocs.pm/recode/Recode.Task.SinglePipe.html)
 
+* __Side-conditions:__
+  * To be eligible for refactoring, a pipe must have only two members, with the first being a variable or a zero-arity function call, followed by a function call with arity of at least one.
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -3906,6 +3947,13 @@ ___
   ```
 
   This example is based on an original code by David Lucia. Source: [link](https://www.youtube.com/watch?v=wvfhrvAFOoQ)
+
+* __Side-conditions:__
+  * The deep extraction of a value within nested structs must originally occur in the definition of a function clause;
+
+  * All nested ``structs`` must have keys defined as ``atoms``;
+
+  * The temporary variable created to perform pattern matching only with the outermost ``struct`` of the nesting must have a name that does not conflict with pre-existing parameters or local variables in the function to be refactored.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -4065,6 +4113,9 @@ ___
 
   Although this example used the `Enum.reduce/3` function in the refactoring, Elixir has various other built-in higher-order functions that could be used to refactor code with different behaviors than those presented in this example.
 
+* __Side-conditions:__
+  * For recursive functions to be eligible for refactoring, they must exhibit behavior identical to the function calls defined in the `Enum` module of Elixir. In other words, even though the bodies of the originally recursive functions are replaced with built-in function calls from the `Enum` module, no caller of the original functions should be altered, and all existing tests in the codebase should continue to behave in the same way.
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -4127,6 +4178,11 @@ ___
 
   This example is based on an original code by Andrea Leopardi. Source: [link](https://github.com/elixir-lang/elixir/pull/5702)
 
+* __Side-conditions:__
+  * The guard `when` should be used in the `case` clause that originally had a nested `if..else` to replace the branch equivalent to the `if`;
+  
+  * On the other hand, a clause with pattern matching identical to the one originally used in the clause that had nested conditionals should be added immediately after the one described in the previous condition. Its purpose is to replace the branch originally defined by the `else`.
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -4174,6 +4230,9 @@ ___
   iex(1)> Foo.bar([10, 6, 90, 8, 3, 9])
   6
   ```
+
+* __Side-conditions:__
+  * To be refactored, the pipeline must start with the call of a function with an arity of one or more. Additionally, the first parameter of the function call that originally starts the pipeline must be provided by a variable.
 
 [▲ back to Index](#table-of-contents)
 ___
