@@ -132,7 +132,7 @@ Elixir-specific refactorings are those that use programming features unique to t
 
 * __Source:__ This refactoring emerged from a Grey Literature Review (GLR).
 
-* __Motivation:__ In Elixir, when using an `alias` for multiple names from the same namespace, you can consolidate multi-instruction instructions per namespace. Although this programming practice is common and can reduce the number of lines of code, multi-aliases can make it harder to search for a dependency in large code bases. This refactoring aims to expand multi-alias instructions fused into one multi-instruction per namespace, transforming them into single alias instructions per name. This provides improvement in code readability and traceability.
+* __Motivation:__ In Elixir, when using an `alias` for multiple names from the same namespace, you can sort and consolidate them within a single file, reducing redundancy. Although this programming practice is common and can reduce the number of lines of code, multi-aliases can make it harder to search for a dependency in large code bases. This refactoring aims to expand multi-alias instructions fused into one multi-instruction per namespace, transforming them into single alias instructions per name. This provides improvement in code readability and traceability.
 
 * __Examples:__ In the following code, before refactoring, we have a multi-alias instruction combining the definition of two dependencies. In this particular case, the dependencies for the `Baz` and `Boom` modules were merged into a single instruction.
 
@@ -153,6 +153,11 @@ Elixir-specific refactorings are those that use programming features unique to t
 
   This example is derived from code found in the official documentation for the tools [Recode](https://hexdocs.pm/recode/0.6.5/Recode.Task.AliasExpansion.html) and [ExactoKnife](https://hexdocs.pm/exacto_knife/readme.html#refactorings).
 
+* __Side-conditions:__
+  * The number of `alias` commands inserted by this refactoring is identical to the number of modules that were originally merged into a single `alias` instruction (*i.e.*, inside a `{}`, such as `{Baz, Boom}`);
+
+  * Each of the `alias` instructions inserted by this refactoring should start with the path that was shared by the modules originally merged (*e.g.*, `Foo.Bar`), followed by a `.` and the name of one of the modules that were previously imported by a single command (*e.g.*, `Bar` or `Boom`).
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -170,7 +175,7 @@ ___
   # Before refactoring:
 
   currency = 
-    if(Map.has_key? price, "currency") do
+    if(Map.has_key?(price, "currency")) do
       price["currency"]
     else
       "USD"
@@ -185,6 +190,9 @@ ___
   ```
 
   This example is based on an original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
+
+* __Side-conditions:__
+  * To be eligible for this refactoring, the code snippet must consist of an `if..else` statement, where the condition checked is a call to the built-in function `Map.has_key?/2`. Additionally, the branch created by the `if` should only return the value of the key in the ``Map`` whose existence was checked by the call to `Map.has_key?/2`, while the branch defined by the `else` should only return a default value for a non-existent key.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -236,6 +244,11 @@ ___
 
   This example is based on an original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
 
+* __Side-conditions:__
+  * To be eligible for this refactoring, the code snippet must originally create a subset of a ``Map`` manually, meaning it constructs a new ``Map`` containing only some of the key/value pairs from the complete ``Map``;
+  
+  * The number of elements in the list passed as the second parameter of the `Map.take/2` call in the refactored version of the code must be identical to the number of key/value pairs that originally composed the manually created subset. Additionally, the elements of this list must be exactly the keys of that subset.
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -276,13 +289,18 @@ ___
   pickup = 
     Map.new(pickup, fn 
       {"latitude", lat} -> {"lat", lat}
-      {"longitude", long} -> {"long", long}
-      {"pickupId", pickup_id} -> {"pickup_id", pickup_id}
-      {"stopName", stop_name} -> {"stop_name", stop_name}
+      {key, value} -> {key, value}  # <-- Clause for unchanged keys
     end)
   ```
 
   This example is based on an original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
+
+* __Side-conditions:__
+  * To be eligible for this refactoring, the code snippet must originally be composed of a call to the function `Map.get/2`, followed by `Map.put/2`, and `Map.delete/2`;
+  
+  * All temporary variables created in the refactored version for performing pattern matching in clauses of the multi-clause anonymous function (*e.g.*, `lat`, `key`, and `value`) must have names different from other previously defined variables, thus avoiding conflicts;
+
+  * The multi-clause anonymous function passed as a parameter to the `Map.new/2` call in the refactored version must have at least two clauses: one for each modified key (*e.g.*, `{"latitude", lat} -> {"lat", lat}`) and another to keep all other keys unchanged as in the original (*i.e.*, `{key, value} -> {key, value}`).
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -341,6 +359,11 @@ ___
   Although simple, this refactoring brings many improvements to the code quality. If the database schema is altered, for instance, the above code will continue to work for all fields in the schema without the need for additional modifications.
 
   This example is based on an original code by Malreddy Ankanna. Source: [link](https://medium.com/blackode/elixir-code-refactoring-techniques-33589ac56231)
+
+* __Side-conditions:__
+  * To be eligible for this refactoring, the code snippet must originally contain a manually created list being passed as a parameter to a call to the `validate_required/3` function;
+  
+  * If the original list does not contain all the fields of an Ecto schema, the refactored version should perform a list subtraction (*i.e.*, ``Kernel.--/2``) on the result of the `__schema__/1` function call. For example, if the original list includes all fields except `:carrier_terminal` and `:carrier_type`, to maintain the same behavior, the following expression should be used: `__schema__(:fields) -- [:carrier_terminal, :carrier_type]`.
 
 [▲ back to Index](#table-of-contents)
 ___
