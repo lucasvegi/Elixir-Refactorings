@@ -4487,6 +4487,9 @@ ___
   [1, 2, 3, 4]
   ```
 
+* __Side-conditions:__
+  * In the original code, the definition of which function will be called by `apply/3` and its respective parameters should occur statically, meaning at compile time.
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -4535,6 +4538,9 @@ ___
   iex(1)> Enum.to_list(1..1_000_000) |> Bar.foo() 
   :non_empty_list
   ```
+
+* __Side-conditions:__
+  * The function to be refactored should receive a ``list`` as a parameter and call the `length/1` function in guard clauses to check whether the ``list`` is empty or not.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -4686,6 +4692,9 @@ ___
 
 * __Examples:__ An example of using this __*refactoring to remove concurrency*__ can be seen in eliminating the code smell [Code organization by process][Code organization by process]. Here, we have a code that previously used processes, callbacks, and message passing where a simpler regular module and a function call would have enough. This refactoring allowed for the improvement of code quality without altering its behavior.
 
+* __Side-conditions:__
+  * To perform this refactoring, it is necessary to be able to replace process callbacks with conventional function calls without making changes to the public interfaces of the refactored module.
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -4809,6 +4818,9 @@ ___
   ```
 
   Note that all messages sent between these processes have the format of a tuple ``{tag, msg}`` after the refactoring. In addition, the function ``Receiver.run/0`` now uses pattern matching to provide different treatments for messages identified with different tags. The programmer has the freedom to adapt ``Receiver.run/0`` by configuring all message identification tags relevant to their system.
+
+* __Side-conditions:__
+  * The function whose arity is modified in this refactoring (*e.g.*, `Sender.send_msg/3`) should not conflict in name and arity with other functions that are already predefined or imported by the refactored module.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -4969,6 +4981,11 @@ ___
   ```
   
   These examples are based on Erlang code written in this paper: [[1]](https://dl.acm.org/doi/10.1145/3064899.3064909)
+
+* __Side-conditions:__
+  * The module that defines the callbacks for the behaviour after the refactoring (*e.g.*, `Foo`) should not originally have callbacks with the same name, or even functions defined or imported previously with the same name as the callbacks defined in the refactoring (*e.g.*, `math_operation/2`), thus avoiding conflicts.
+
+  * The module that implements the behaviour defined in the refactoring (*e.g.*, `Sum`) should not originally have functions defined or imported that conflict in name and arity with the callbacks from the behaviour definition.
   
 [▲ back to Index](#table-of-contents)
 ___
@@ -4982,6 +4999,11 @@ ___
 * __Examples:__ To perform this elimination, the function that implements a callback in a ``behaviour instance`` is moved to the ``behaviour definition`` module using [Moving a definition](#moving-a-definition), which will handle possible naming conflicts and update references to that function. If the moved function was the only callback implemented by the ``behaviour instance`` module, the definition of the implemented behaviour (``@behaviour``) should be removed from the ``behaviour instance``, thus turning it into a regular module. Additionally, when the moved function is the last existing implementation of the callback throughout the codebase, this callback should cease to exist, being removed from the ``behaviour definition`` module.
   
   To better understand, take a look at the example in [Behaviour extraction](#behaviour-extraction) in reverse order, that is, ``# After refactoring:`` ->  ``# Before refactoring:``.
+
+* __Side-conditions:__
+  * The module that originally defines the callbacks for the behaviour should not have functions defined or imported previously with the same name as the function moved to it in this refactoring, thus avoiding conflicts;
+
+  * To avoid breaking changes, the definition of the behaviour callbacks can only be removed by this refactoring if no other module implements the same behaviour in the codebase.
 
 [▲ back to Index](#table-of-contents)
 ___
