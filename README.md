@@ -415,6 +415,13 @@ ___
 
   This example is based on an original code by Gary Rennie. Source: [link](https://www.youtube.com/watch?v=V21DAKtY31Q)
 
+* __Side-conditions:__
+  * To be eligible for this refactoring, each of the functions called sequentially within a nested conditional must originally have their execution flow controlled by some form of pattern matching. For example, functions that return values in the format `{:ok, _}` or `{:error, _}` are candidates for having their sequential calls refactored;
+  
+  * Branches originally created by an `else` in an `if..else` statement within the nesting should be handled in the `else` clause of the `with` statement used in the refactoring;
+  
+  * The body of the `with` statement used in the refactoring should return the value returned by the last function called in the original sequence of calls (*e.g.*, `play_turn/3`).
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -431,6 +438,24 @@ ___
   ```elixir
   # Before refactoring:
 
+  def update_refused_challenges(user, count) do
+    params = %{refused_challenges: user.refused_challenges + count}
+    
+    user
+    |> User.update_changeset(params)
+    |> Repo.update()
+  end
+
+  defp delete_challenges(challenges) do
+    ids = Enum.map(challenges, &(&1.id))
+    query = where(Challenge, [c], c.id in ^ids)
+    Repo.delete_all(query)
+  end
+
+  defp stop_games(challenges) do
+    Enum.map(challenges, &GameRegistry.delete_game(&1.id))
+  end
+  
   def clear_challenges(user, age \\ 300) do
     challenges = get_old_open_challenges(user, age)
     count = length(challenges)
@@ -450,13 +475,31 @@ ___
   ```elixir
   # After refactoring:
 
+  def update_refused_challenges(user, count) do
+    params = %{refused_challenges: user.refused_challenges + count}
+    
+    user
+    |> User.update_changeset(params)
+    #|> Repo.update()   <-- removed during refactoring!
+  end
+
+  defp delete_challenges(challenges) do
+    ids = Enum.map(challenges, &(&1.id))
+    query = where(Challenge, [c], c.id in ^ids)
+    # Repo.delete_all(query) <-- removed during refactoring!
+  end
+
+  defp stop_games(challenges) do
+    Enum.map(challenges, &GameRegistry.delete_game(&1.id))
+    {:ok, :stopped_games} # <--- added during refactoring!
+  end
+  
   def clear_challenges(user, age \\ 300) do
     challenges = get_old_open_challenges(user, age)
     count = length(challenges)
     
-    params = %{refused_challenges: user.refused_challenges + count}
     Ecto.Multi.new()
-    |> Ecto.Multi.update(:user, User.update_changeset(user, params))
+    |> Ecto.Multi.update(:user, update_refused_challenges(user, count))
     |> Ecto.Multi.delete_all(:challenges, delete_challenges(challenges))
     |> Ecto.Multi.run(:games, fn _ -> stop_games(challenges) end)
     |> Repo.transaction()
@@ -464,6 +507,9 @@ ___
   ```
 
   This example is based on an original code by Gary Rennie. Source: [link](https://www.youtube.com/watch?v=V21DAKtY31Q)
+
+* __Side-conditions:__
+  * To maintain the same behavior as the original code, it may be necessary to make some adjustments to the functions called in the original pipeline using `with`. For example, the functions `update_refused_challenges/2` and `delete_challenges/1` originally ended by calling `Repo.update/2` and `Repo.delete_all/2`, respectively. After refactoring, the calls to `Repo.update/2` and `Repo.delete_all/2` should be removed, as these operations are now performed by `Ecto.Multi` in the refactored version.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -535,6 +581,11 @@ ___
   end 
   ```
 
+* __Side-conditions:__
+  * To maintain the same behavior as the original code, each condition checked in the `if` statements within the original nesting should be transformed into a clause of the `cond` statement, following the order in which they appear in the original code;
+
+  * The innermost branch of the original nesting, i.e., the last `else`, should be transformed into the last clause of the `cond`, which will naturally only be reached if all the previous clauses evaluate to `false`.
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -591,6 +642,9 @@ ___
 
   These examples are based on code written in Credo's official documentation. Source: [link](https://hexdocs.pm/credo/Credo.Check.Refactor.DoubleBooleanNegation.html)
 
+* __Side-conditions:__
+  * The name and arity of function created in this refactoring (*e.g.*, ``helper/1``) must not conflict with the name of any other function already defined or imported by the refactored module.
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -624,6 +678,9 @@ ___
   ```
 
   These examples are based on code written in Credo's official documentation. Source: [link](https://hexdocs.pm/credo/Credo.Check.Refactor.MatchInCondition.html)
+
+* __Side-conditions:__
+  * This refactoring is free of side-conditions and can therefore be applied whenever an `if` statement performing pattern matching in its condition is selected.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -664,6 +721,9 @@ ___
   ```
 
   These examples are based on code written in Credo's official documentation. Source: [link](https://hexdocs.pm/credo/Credo.Check.Refactor.WithClauses.html)
+
+* __Side-conditions:__
+  * The first and/or last clause of the `with` statement to be refactored should not use the `<-` operator (*i.e.*, they don't match anything).
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -726,6 +786,9 @@ ___
   ```
 
   This example is based on an original code refactored by ByeongUk Choi. Source: [link](https://github.com/phoenixframework/phoenix_live_view/pull/1958)
+
+* __Side-conditions:__
+  * The pattern checked in the last clause of the `with` statement must be lexically identical to the value returned in the body of the `with`. Additionally, the body of the `with` should contain only the value to be returned.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -827,6 +890,11 @@ ___
 
   These examples are based on code written in Elixir's official documentation. Source: [link](https://hexdocs.pm/elixir/enumerable-and-streams.html)
 
+* __Side-conditions:__
+  * Function calls from the `Enum` module used in a pipeline can only be replaced by functions from the `Stream` module that perform operations equivalent to the originals;
+
+  * To maintain the behavior of the original code, after the calls to functions from the `Stream` module inserted in this refactoring, there must be at least one call to a function from the `Enum` module in the pipeline.
+
 [▲ back to Index](#table-of-contents)
 ___
 
@@ -917,6 +985,9 @@ ___
   ```
 
   This example is based on an original code by Saša Jurić available in the __"Elixir in Action, 2. ed."__ book.
+
+* __Side-conditions:__
+  * To perform this refactoring, it is necessary to be able to replace a more specific process abstraction (*e.g.*, `Task`) with a more generic one (*i.e.*, `GenServer`) without making changes to the public interfaces of the refactored module.
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -3198,7 +3269,7 @@ ___
   * The expressions to be simplified by this refactoring must originally be defined in guards, whether they are for checks in `case` statements or in function clauses;
 
   * The expressions to be refactored, in order to be considered redundant, must alternatively:
-    * check the type of a simple value (*e.g.*, `integer`, `float`, or `atom`) and additionally perform an **equality** comparison of this value with a constant;
+    * check the type of a simple value (*e.g.*, `integer`, `float`, or `atom`) and additionally perform an __equality__ comparison of this value with a constant;
 
     * check the type of a composite value (*e.g.*, `list`, `tuple`, `bitstring`, or `Map`) and also perform a comparison of this value with a constant in such a way that the type is inherently verified as well. For example, the functions `byte_size/1`, `tuple_size/1`, and `map_size/1`, in addition to returning the sizes of composite values, also intrinsically verify if they are of the types `bitstring`, `tuple`, or `Map`, respectively.
 
