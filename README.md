@@ -418,9 +418,9 @@ ___
 * __Side-conditions:__
   * To be eligible for this refactoring, each of the functions called sequentially within a nested conditional must originally have their execution flow controlled by some form of pattern matching. For example, functions that return values in the format `{:ok, _}` or `{:error, _}` are candidates for having their sequential calls refactored;
   
-  * Branches originally created by an `else` in an `if..else` statement within the nesting should be handled in the `else` clause of the `with` statement used in the refactoring;
+  <!--* Branches originally created by an `else` in an `if..else` statement within the nesting should be handled in the `else` clause of the `with` statement used in the refactoring;
   
-  * The body of the `with` statement used in the refactoring should return the value returned by the last function called in the original sequence of calls (*e.g.*, `play_turn/3`).
+  * The body of the `with` statement used in the refactoring should return the value returned by the last function called in the original sequence of calls (*e.g.*, `play_turn/3`).-->
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -508,8 +508,8 @@ ___
 
   This example is based on an original code by Gary Rennie. Source: [link](https://www.youtube.com/watch?v=V21DAKtY31Q)
 
-* __Side-conditions:__
-  * To maintain the same behavior as the original code, it may be necessary to make some adjustments to the functions called in the original pipeline using `with`. For example, the functions `update_refused_challenges/2` and `delete_challenges/1` originally ended by calling `Repo.update/2` and `Repo.delete_all/2`, respectively. After refactoring, the calls to `Repo.update/2` and `Repo.delete_all/2` should be removed, as these operations are now performed by `Ecto.Multi` in the refactored version.
+<!--* __Side-conditions:__
+  * To maintain the same behavior as the original code, it may be necessary to make some adjustments to the functions called in the original pipeline using `with`. For example, the functions `update_refused_challenges/2` and `delete_challenges/1` originally ended by calling `Repo.update/2` and `Repo.delete_all/2`, respectively. After refactoring, the calls to `Repo.update/2` and `Repo.delete_all/2` should be removed, as these operations are now performed by `Ecto.Multi` in the refactored version.-->
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -581,10 +581,10 @@ ___
   end 
   ```
 
-* __Side-conditions:__
+<!--* __Side-conditions:__
   * To maintain the same behavior as the original code, each condition checked in the `if` statements within the original nesting should be transformed into a clause of the `cond` statement, following the order in which they appear in the original code;
 
-  * The innermost branch of the original nesting, i.e., the last `else`, should be transformed into the last clause of the `cond`, which will naturally only be reached if all the previous clauses evaluate to `false`.
+  * The innermost branch of the original nesting, i.e., the last `else`, should be transformed into the last clause of the `cond`, which will naturally only be reached if all the previous clauses evaluate to `false`.-->
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -986,8 +986,8 @@ ___
 
   This example is based on an original code by Saša Jurić available in the __"Elixir in Action, 2. ed."__ book.
 
-* __Side-conditions:__
-  * To perform this refactoring, it is necessary to be able to replace a more specific process abstraction (*e.g.*, `Task`) with a more generic one (*i.e.*, `GenServer`) without making changes to the public interfaces of the refactored module.
+<!--* __Side-conditions:__
+  * To perform this refactoring, it is necessary to be able to replace a more specific process abstraction (*e.g.*, `Task`) with a more generic one (*i.e.*, `GenServer`) without making changes to the public interfaces of the refactored module.-->
 
 [▲ back to Index](#table-of-contents)
 ___
@@ -1295,9 +1295,11 @@ ___
 * __Side-conditions:__
   * The new function created by this refactoring must have the same arity as the original function and have a name different from all others defined or imported by the refactored module, avoiding conflicts;
   
-  * The ``area/3`` acts as a wrapper that calls ``new_area/3`` and should be kept in the code temporarily, only while the calls to it throughout the codebase are gradually replaced by calls to ``new_area/3``. This mitigates the risk of this refactoring generating breaking changes;
+  <!--* The ``area/3`` acts as a wrapper that calls ``new_area/3`` and should be kept in the code temporarily, only while the calls to it throughout the codebase are gradually replaced by calls to ``new_area/3``. This mitigates the risk of this refactoring generating breaking changes;-->
 
-  * When there are no more calls to the ``area/3``, it should be deleted from its module and ``new_area/3`` can be renamed to ``area/3`` using [Rename an identifier](#rename-an-identifier).
+  * Immediately after the refactoring, there should be no calls to the newly created function (*e.g.*, `new_area/3`) anywhere other than within the body of the original function (*e.g.*, `area/3`).
+
+  <!--* When there are no more calls to the ``area/3``, it should be deleted from its module and ``new_area/3`` can be renamed to ``area/3`` using [Rename an identifier](#rename-an-identifier).-->
 
 [▲ back to Index](#table-of-contents)
 ___
