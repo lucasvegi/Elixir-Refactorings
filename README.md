@@ -5017,6 +5017,7 @@ This catalog was proposed by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC
 For more info see the following paper:
 
 * [Towards a Catalog of Refactorings for Elixir](https://www.researchgate.net/publication/373173969_Towards_a_Catalog_of_Refactorings_for_Elixir), International Conference on Software Maintenance and Evolution (ICSME), 2023. [[slides]](https://drive.google.com/file/d/1Vv1o6_mwlCWckfFINbJNzMIU7sJ9ji01/view?usp=drive_link) [[video]](https://youtu.be/W2RI8mIcguM)
+* [Understanding refactorings in Elixir functional language](https://link.springer.com/article/10.1007/s10664-025-10652-y), Empirical Software Engineering Journal (EMSE), 2025. 
 
 Please feel free to make pull requests and suggestions ([Issues][Issues] tab).
 
