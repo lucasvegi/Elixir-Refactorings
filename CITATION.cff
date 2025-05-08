@@ -1,4 +1,4 @@
-cff-version: 1.2.0
+cff-version: 1.2.1
 message: 'If you use this catalog in your work, please cite it as below.'
 authors:
   - given-names: Lucas Francisco da Matta
@@ -13,7 +13,7 @@ authors:
     orcid: 'https://orcid.org/0000-0002-8180-7548'
 title: 'Catalog of Elixir Refactorings'
 version: '1.0'
-date-released: '2023-08-16'
+date-released: '2025-05-08'
 url: 'https://github.com/lucasvegi/Elixir-Refactorings'
 keywords:
   - elixir
@@ -21,7 +21,7 @@ keywords:
   - functional programming
 license: MIT
 preferred-citation:
-  type: conference-paper
+  type: article
   message: 'If you use this catalog in your work, please cite it as below.'
   authors:
   - given-names: Lucas Francisco da Matta
@@ -34,10 +34,12 @@ preferred-citation:
     email: mtov@dcc.ufmg.br
     affiliation: Federal University of Minas Gerais (UFMG)
     orcid: 'https://orcid.org/0000-0002-8180-7548'
-  doi: "10.1109/ICSME58846.2023.00045"  
-  collection-title: "39th International Conference on Software Maintenance and Evolution (ICSME'2023)"
-  pages: 5
-  start: 358 # First page number
-  end: 362 # Last page number
-  title: "Towards a Catalog of Refactorings for Elixir"
-  year: 2023
+  doi: "10.1007/s10664-025-10652-y"  
+  journal: "Empirical Software Engineering"
+  pages: 58
+  start: 1 # First page number
+  end: 58 # Last page number
+  title: "Understanding refactorings in Elixir functional language"
+  issue: 108
+  volume: 30
+  year: 2025
